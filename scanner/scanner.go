@@ -7,7 +7,6 @@ import (
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
-	"net/http"
 )
 
 // Perform an *interactive* *console* handshake. This requires the user
@@ -72,7 +71,7 @@ func main() {
 
 	for i := 0; i < 100; i++ {
 
-		req, err := http.NewRequest("GET", "https://api-sisi.testeveonline.com/market/10000002/orders/buy/?type=https://api-sisi.testeveonline.com/inventory/types/683/", nil)
+		req, err := crestmarket.NewCrestRequest("/market/10000002/orders/buy/?type=https://api-sisi.testeveonline.com/inventory/types/683/")
 		resp, err := t.RoundTrip(req)
 
 		body, err := ioutil.ReadAll(resp.Body)
