@@ -1,5 +1,7 @@
-crestmarket
---------
+# crestmarket
+
+[![GoDoc](https://godoc.org/github.com/theatrus/crestmarket?status.svg)](http://godoc.org/github.com/theatrus/crestmarket)
+
 
 A reference implementation of a full market scraper using the
 EVE-Online CREST endpoint.
