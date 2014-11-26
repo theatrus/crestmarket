@@ -19,7 +19,6 @@ func FileToken(f *FileTokenStore) oauth2.Option {
 }
 
 func (o *FileTokenStore) ReadToken() (*oauth2.Token, error) {
-	log.Println("Reading token")
 	fileContents, err := ioutil.ReadFile(o.Filename)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/oauth2"
@@ -10,26 +10,11 @@ import (
 	"net/http"
 )
 
-type OAuthSettings struct {
-	ClientId     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	Callback     string `json:"callback"`
-}
-
-func baseOauth(settings OAuthSettings) (*oauth2.Options, error) {
-	return oauth2.New(
-		oauth2.Client(settings.ClientId, settings.ClientSecret),
-		oauth2.RedirectURL(settings.Callback),
-		oauth2.Scope("publicData"),
-		oauth2.Endpoint(
-			"https://sisilogin.testeveonline.com/oauth/authorize",
-			"https://sisilogin.testeveonline.com/oauth/token",
-		),
-	)
-}
-
-func newHandshake(settings OAuthSettings, store *crestmarket.FileTokenStore) (*oauth2.Transport, error) {
-	f, err := baseOauth(settings)
+// Perform an *interactive* *console* handshake. This requires the user
+// opening a URL manually, and then pasting the resultant code back into
+// this application. The other approach is a multi-invocation token-fetcher.
+func newHandshake(settings *crestmarket.OAuthSettings, store *crestmarket.FileTokenStore) (*oauth2.Transport, error) {
+	f, err := crestmarket.NewOauthOptions(settings)
 	f.TokenStore = store
 	if err != nil {
 		log.Fatal(err)
@@ -63,16 +48,16 @@ func newHandshake(settings OAuthSettings, store *crestmarket.FileTokenStore) (*o
 
 func main() {
 
-	var settings OAuthSettings
-	settingsData, err := ioutil.ReadFile("settings.json")
+	flag.Parse()
+
+	settings, err := crestmarket.LoadSettings("settings.json")
 	if err != nil {
-		log.Fatal("Can't load secret key file - aborting")
-		return
+		log.Fatal(err)
 	}
-	json.Unmarshal(settingsData, &settings)
 
 	store := crestmarket.FileTokenStore{"token.json"}
-	base, err := baseOauth(settings)
+
+	base, err := crestmarket.NewOauthOptions(settings)
 	t, err := base.NewTransportFromTokenStore(&store)
 	if err != nil {
 		log.Println("Token refresh has failed, requesting new authorization interactively")
@@ -83,7 +68,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(t.Token().AccessToken)
 	store.WriteToken(t.Token())
 
 	for i := 0; i < 100; i++ {
