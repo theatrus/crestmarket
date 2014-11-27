@@ -17,6 +17,7 @@ package crestmarket
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"net/http"
@@ -38,6 +39,7 @@ type requestor struct {
 // The base type of fetcher for all CREST data types.
 type CRESTRequestor interface {
 	Regions() (*Regions, error)
+	Types() error
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) CRESTRequestor {
@@ -80,25 +82,42 @@ func unpackRegions(body []byte) (*Regions, error) {
 }
 
 func (o *requestor) Regions() (*Regions, error) {
-
-	req, err := newCrestRequest("/regions/")
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := o.transport.RoundTrip(req)
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
+	body, err := fetch("/regions/", o.transport)
 	if err != nil {
 		return nil, err
 	}
 	regions, err := unpackRegions(body)
 
 	return regions, nil
+}
+
+func (o *requestor) Types() error {
+	body, err := fetch("/inventory/types/", o.transport)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s", body)
+	return nil
+
+}
+
+// Peform a URL fetch and read into a []byte
+func fetch(path string, transport *oauth2.Transport) ([]byte, error) {
+	req, err := newCrestRequest(path)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
 func newCrestRequest(path string) (*http.Request, error) {

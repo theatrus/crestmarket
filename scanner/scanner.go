@@ -88,4 +88,10 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s", regions)
+
+	
+	err = requestor.Types()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
