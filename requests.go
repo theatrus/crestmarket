@@ -83,7 +83,7 @@ func (o *requestor) Regions() (*Regions, error) {
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
