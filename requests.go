@@ -20,6 +20,7 @@ import (
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -64,7 +65,15 @@ func unpackRegions(body []byte) (*Regions, error) {
 		if !ok {
 			return nil, errors.New("Can't unpack a region")
 		}
-		region := Region{itemMap["name"].(string), itemMap["href"].(string), 0}
+
+		href := itemMap["href"].(string)
+		idSplit := strings.Split(href, "/")
+		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		region := Region{itemMap["name"].(string), href, int(id)}
 		regions.AllRegions = append(regions.AllRegions, &region)
 	}
 	return &regions, nil
