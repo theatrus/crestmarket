@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/oauth2"
-	"io/ioutil"
 	"log"
 )
 
@@ -80,21 +79,13 @@ func main() {
 			return
 		}
 	}
-
+	// Need to manually flush the token store at auth for now
 	store.WriteToken(t.Token())
 
-	for i := 0; i < 100; i++ {
-
-		req, err := crestmarket.NewCrestRequest("/market/10000002/orders/buy/?type=https://api-sisi.testeveonline.com/inventory/types/683/")
-		resp, err := t.RoundTrip(req)
-
-		body, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%s", body)
+	requestor := crestmarket.NewCrestRequestor(t)
+	regions, err := requestor.Regions()
+	if err != nil {
+		log.Fatal(err)
 	}
-
+	fmt.Printf("%s", regions)
 }

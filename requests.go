@@ -15,7 +15,12 @@
 package crestmarket
 
 import (
+	"encoding/json"
+	"errors"
+	"github.com/theatrus/oauth2"
+	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -25,8 +30,74 @@ const (
 	accept = "application/vnd.ccp.eve.MarketTypeCollection-v1+json"
 )
 
+type requestor struct {
+	transport *oauth2.Transport
+}
+
+// The base type of fetcher for all CREST data types.
+type CRESTRequestor interface {
+	Regions() (*Regions, error)
+}
+
+func NewCrestRequestor(transport *oauth2.Transport) CRESTRequestor {
+	return &requestor{transport}
+}
+
+func unpackRegions(body []byte) (*Regions, error) {
+	// Eschewing the normal tagged
+	// unpacking here as the return structure is not
+	// ideal for the in-application representation
+
+	regions := Regions{make([]*Region, 0)}
+	raw := make(map[string]interface{})
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, err
+	}
+
+	items, ok := raw["items"].([]interface{})
+	if !ok {
+		return nil, errors.New("Can't find an items key when unpacking regions")
+	}
+
+	for _, item := range items {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("Can't unpack a region")
+		}
+		region := Region{itemMap["name"].(string), itemMap["href"].(string), 0}
+		regions.AllRegions = append(regions.AllRegions, &region)
+	}
+	return &regions, nil
+}
+
+func (o *requestor) Regions() (*Regions, error) {
+
+	req, err := NewCrestRequest("/regions/")
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := o.transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	regions, err := unpackRegions(body)
+
+	return regions, nil
+}
+
 func NewCrestRequest(path string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", prefix + path, nil)
+	var finalPath = path
+	if !strings.HasPrefix(path, "http") {
+		finalPath = prefix + finalPath
+	}
+	req, err := http.NewRequest("GET", finalPath, nil)
 	req.Header.Add("Accept", accept)
 	return req, err
 }
