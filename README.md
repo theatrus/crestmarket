@@ -1,7 +1,7 @@
 # crestmarket
 
 [![GoDoc](https://godoc.org/github.com/theatrus/crestmarket?status.svg)](http://godoc.org/github.com/theatrus/crestmarket)
-
+[![Build Status](https://travis-ci.org/theatrus/crestmarket.svg)](https://travis-ci.org/theatrus/crestmarket)
 
 A reference implementation of a full market scraper using the
 EVE-Online CREST endpoint.

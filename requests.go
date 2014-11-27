@@ -81,7 +81,7 @@ func unpackRegions(body []byte) (*Regions, error) {
 
 func (o *requestor) Regions() (*Regions, error) {
 
-	req, err := NewCrestRequest("/regions/")
+	req, err := newCrestRequest("/regions/")
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +101,7 @@ func (o *requestor) Regions() (*Regions, error) {
 	return regions, nil
 }
 
-func NewCrestRequest(path string) (*http.Request, error) {
+func newCrestRequest(path string) (*http.Request, error) {
 	var finalPath = path
 	if !strings.HasPrefix(path, "http") {
 		finalPath = prefix + finalPath
