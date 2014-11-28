@@ -102,7 +102,7 @@ func (o *requestor) Regions() (*Regions, error) {
 }
 
 func (o *requestor) Types() error {
-	body, err := fetch("/", o.transport)
+	body, err := fetch(o.root.Resources["itemTypes"], o.transport)
 	if err != nil {
 		return err
 	}
