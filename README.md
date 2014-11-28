@@ -32,4 +32,4 @@ bin/scanner
 
 Running the scanner example will prompt you to open a URL, and to
 paste in the reply code and hit enter. By default, this will also
-cache your OAuth tokens in a file sure in `tokens.json`
+cache your OAuth tokens in `token.json`
