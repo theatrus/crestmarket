@@ -34,16 +34,25 @@ const (
 
 type requestor struct {
 	transport *oauth2.Transport
+	root *Root
 }
 
 // The base type of fetcher for all CREST data types.
 type CRESTRequestor interface {
+	Root() (*Root, error)
 	Regions() (*Regions, error)
 	Types() error
 }
 
-func NewCrestRequestor(transport *oauth2.Transport) CRESTRequestor {
-	return &requestor{transport}
+func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
+	req := requestor{transport, nil}
+
+	root, err := req.Root()
+	if err != nil {
+		return nil, err
+	}
+	req.root = root
+	return &req, nil
 }
 
 func unpackRegions(body []byte) (*Regions, error) {
@@ -82,7 +91,8 @@ func unpackRegions(body []byte) (*Regions, error) {
 }
 
 func (o *requestor) Regions() (*Regions, error) {
-	body, err := fetch("/regions/", o.transport)
+	path := o.root.Resources["regions"]
+	body, err := fetch(path, o.transport)
 	if err != nil {
 		return nil, err
 	}
@@ -92,13 +102,43 @@ func (o *requestor) Regions() (*Regions, error) {
 }
 
 func (o *requestor) Types() error {
-	body, err := fetch("/inventory/types/", o.transport)
+	body, err := fetch("/", o.transport)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("%s", body)
 	return nil
+}
 
+func (o *requestor) Root() (*Root, error) {
+
+	body, err := fetch("/", o.transport)
+	if err != nil {
+		return nil, err
+	}
+	return unpackRoot(body)
+}
+
+func unpackRoot(body []byte) (*Root, error) {
+	var root Root
+	root.Resources = make(map[string]string)
+
+	rroots := make(map[string]interface{})
+	if err := json.Unmarshal(body, &rroots); err != nil {
+		return nil, err
+	}
+
+	for service, item := range rroots {
+		itemM, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		href, ok := itemM["href"].(string)
+		if ok {
+			root.Resources[service] = href
+		}
+	}
+	return &root, nil
 }
 
 // Peform a URL fetch and read into a []byte

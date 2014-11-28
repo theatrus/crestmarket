@@ -11,3 +11,7 @@ type Region struct {
 type Regions struct {
 	AllRegions []*Region
 }
+
+type Root struct {
+	Resources map[string]string
+}

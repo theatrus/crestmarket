@@ -82,7 +82,10 @@ func main() {
 	// Need to manually flush the token store at auth for now
 	store.WriteToken(t.Token())
 
-	requestor := crestmarket.NewCrestRequestor(t)
+	requestor, err := crestmarket.NewCrestRequestor(t)
+	if err != nil {
+		log.Fatal(err)
+	}
 	regions, err := requestor.Regions()
 	if err != nil {
 		log.Fatal(err)
@@ -90,8 +93,8 @@ func main() {
 	fmt.Printf("%s", regions)
 
 	
-	err = requestor.Types()
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err = requestor.Types()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 }
