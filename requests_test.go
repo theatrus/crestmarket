@@ -44,7 +44,9 @@ func TestUnpackRoot(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, ok := root.Resources["regions"]; !ok {
+	_, ok := root.Resources["regions"]
+	if !ok {
 		t.Error("Can't find a key for regions")
 	}
+
 }

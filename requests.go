@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"net/http"
@@ -27,10 +28,21 @@ import (
 
 const (
 	prefix = "https://api-sisi.testeveonline.com"
-	// The requested Accept header - this is used for all requests, even
-	// if it doesn't actually make sense to be a MarketTypeCollection?
-	accept = "application/vnd.ccp.eve.MarketTypeCollection-v1+json"
+
+	// The root resource version this library will work with.
+	rootAccept = "application/vnd.ccp.eve.Api-v3+json"
 )
+
+// Basic definitions of resource types
+var resourceVersions map[string]string
+
+func init() {
+	resourceVersions = map[string]string{
+		"root" : rootAccept,
+		"regions": "application/vnd.ccp.eve.RegionCollection-v1+json",
+		"itemTypes": "application/vnd.ccp.eve.ItemTypeCollection-v1+json",
+	}
+}
 
 type requestor struct {
 	transport *oauth2.Transport
@@ -39,8 +51,11 @@ type requestor struct {
 
 // The base type of fetcher for all CREST data types.
 type CRESTRequestor interface {
+	// Return a new copy of the root resource
 	Root() (*Root, error)
+	// Return a list of all regions
 	Regions() (*Regions, error)
+	// Return a list of all known types
 	Types() error
 }
 
@@ -92,7 +107,7 @@ func unpackRegions(body []byte) (*Regions, error) {
 
 func (o *requestor) Regions() (*Regions, error) {
 	path := o.root.Resources["regions"]
-	body, err := fetch(path, o.transport)
+	body, err := o.fetch(path)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +117,7 @@ func (o *requestor) Regions() (*Regions, error) {
 }
 
 func (o *requestor) Types() error {
-	body, err := fetch(o.root.Resources["itemTypes"], o.transport)
+	body, err := o.fetch(o.root.Resources["itemTypes"])
 	if err != nil {
 		return err
 	}
@@ -112,17 +127,17 @@ func (o *requestor) Types() error {
 
 func (o *requestor) Root() (*Root, error) {
 
-	body, err := fetch("/", o.transport)
+	body, err := o.fetch("/")
 	if err != nil {
 		return nil, err
 	}
 	return unpackRoot(body)
 }
 
+// Deserialize the json for the root object into a Root
 func unpackRoot(body []byte) (*Root, error) {
 	var root Root
 	root.Resources = make(map[string]string)
-
 	rroots := make(map[string]interface{})
 	if err := json.Unmarshal(body, &rroots); err != nil {
 		return nil, err
@@ -142,12 +157,13 @@ func unpackRoot(body []byte) (*Root, error) {
 }
 
 // Peform a URL fetch and read into a []byte
-func fetch(path string, transport *oauth2.Transport) ([]byte, error) {
-	req, err := newCrestRequest(path)
+func (o *requestor) fetch(path string) ([]byte, error) {
+	transport := o.transport
+
+	req, err := o.newCrestRequest(path)
 	if err != nil {
 		return nil, err
 	}
-
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
 		return nil, err
@@ -157,15 +173,37 @@ func fetch(path string, transport *oauth2.Transport) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Println(resp.Header["Content-Type"])
 	return body, nil
 }
 
-func newCrestRequest(path string) (*http.Request, error) {
+func (o *requestor) newCrestRequest(path string) (*http.Request, error) {
 	var finalPath = path
 	if !strings.HasPrefix(path, "http") {
 		finalPath = prefix + finalPath
 	}
+	var accept string
+	// Find resource root to pass the appropiate known accept header
+	if finalPath == prefix + "/" || o.Root == nil {
+		// Root path is a special case
+		accept = rootAccept
+	} else {
+		// Iterate through to find prefixes
+		for resource, prefix := range o.root.Resources {
+			if strings.HasPrefix(finalPath, prefix) {
+				accept = resourceVersions[resource]
+				break
+			}
+		}
+	}
 	req, err := http.NewRequest("GET", finalPath, nil)
+	if accept != "" {
+		accept = accept + "; charset=utf-8"
+	} else {
+		accept = "charset=utf-8"
+	}
+	log.Println("Adding accept type of", accept)
 	req.Header.Add("Accept", accept)
+
 	return req, err
 }

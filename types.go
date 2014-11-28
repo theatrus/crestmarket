@@ -13,5 +13,6 @@ type Regions struct {
 }
 
 type Root struct {
+	// Provides a list of canonical resources and their URL root
 	Resources map[string]string
 }
