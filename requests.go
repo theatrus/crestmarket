@@ -213,8 +213,6 @@ func unpackRoot(body []byte) (*Root, error) {
 				root.Resources[base+service] = href
 			} else if len(itemM) > 0 {
 				recurse(base+service+"/", itemM)
-			} else {
-				return
 			}
 		}
 	}
