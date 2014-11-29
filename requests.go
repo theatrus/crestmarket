@@ -76,6 +76,10 @@ type page struct {
 	nextHref string
 }
 
+// Unpack a page structure and extract optional next fields
+// This is useful for a serial request structure - in order
+// to parallelize page fetching different heuristics need to
+// be used violating the API purity.
 func unpackPage(body []byte) (*page, error) {
 	raw := make(map[string]interface{})
 	if err := json.Unmarshal(body, &raw); err != nil {
@@ -98,48 +102,66 @@ func unpackPage(body []byte) (*page, error) {
 	return &page{items, hasNext, next}, nil
 }
 
-func unpackRegions(regions *Regions, page *page) (*Regions, error) {
+func unpackRegions(regions *Regions, page *page) error {
 	items := page.items
 
 	for _, item := range items {
 		itemMap, ok := item.(map[string]interface{})
 		if !ok {
-			return nil, errors.New("Can't unpack a region")
+			return errors.New("Can't unpack a region")
 		}
 
 		href := itemMap["href"].(string)
 		idSplit := strings.Split(href, "/")
 		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		region := Region{itemMap["name"].(string), href, int(id)}
 		regions.AllRegions = append(regions.AllRegions, &region)
 	}
-	return regions, nil
+	return nil
+}
+
+func (o *requestor) walkPages(path string, extractor func(*page) error) error {
+	for {
+		body, err := o.fetch(path)
+		if err != nil {
+			return err
+		}
+		page, err := unpackPage(body)
+		err = extractor(page)
+		if err != nil {
+			return err
+		}
+		if page.hasNext {
+			path = page.nextHref
+		} else {
+			break
+		}
+	}
+	return nil
 }
 
 func (o *requestor) Regions() (*Regions, error) {
 	path := o.root.Resources["regions"]
-	body, err := o.fetch(path)
+	regions := newRegions()
+	err := o.walkPages(path, func(page *page) error { return unpackRegions(regions, page) })
 	if err != nil {
 		return nil, err
 	}
-
-	regions := newRegions()
-	page, err := unpackPage(body)
-	regions, err = unpackRegions(regions, page)
 
 	return regions, nil
 }
 
 func (o *requestor) Types() error {
-	body, err := o.fetch(o.root.Resources["itemTypes"])
+	path := o.root.Resources["itemTypes"]
+	err := o.walkPages(path, func(page *page) error { fmt.Printf("%s", page); return nil })
 	if err != nil {
-		return err
+		return nil
 	}
-	fmt.Printf("%s", body)
+
 	return nil
 }
 

@@ -28,7 +28,7 @@ func TestUnpackRegions(t *testing.T) {
 		t.Error("Regions has a next page when it shouldn't")
 	}
 
-	regions, err = unpackRegions(regions, page)
+	err = unpackRegions(regions, page)
 
 	if err != nil {
 		t.Error(err)
