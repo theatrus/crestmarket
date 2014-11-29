@@ -388,7 +388,7 @@ func (o *requestor) newCrestRequest(path string,
 	var accept string
 	if addAccept {
 		// Find resource root to pass the appropiate known accept header
-		if finalPath == prefix+"/" || o.Root == nil {
+		if finalPath == prefix + "/" || o.root == nil {
 			// Root path is a special case
 			accept = rootAccept
 		} else {

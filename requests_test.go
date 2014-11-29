@@ -613,7 +613,7 @@ func TestUnpackRegions(t *testing.T) {
 	}
 
 	if c.Id != 10000002 {
-		t.Error("Didn't decode the right region ID: %s", c)
+		t.Error("Didn't decode the right region ID:", c.Id)
 	}
 
 	if len(regions.AllRegions) != 99 {
