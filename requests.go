@@ -215,7 +215,7 @@ func unpackRoot(body []byte) (*Root, error) {
 
 func (o *requestor) walkPages(path string, resource string, extractor func(*page) error) error {
 	for {
-		body, err := o.fetch(path, resource)
+		body, err := o.fetchWithRetry(path, resource)
 		if err != nil {
 			return err
 		}
@@ -286,7 +286,7 @@ func (o *requestor) Root() (*Root, error) {
 
 func (o *requestor) fetchRoot() (*Root, error) {
 
-	body, err := o.fetch("/", "crestEndpoint")
+	body, err := o.fetchWithRetry("/", "crestEndpoint")
 	if err != nil {
 		return nil, err
 	}
@@ -318,6 +318,24 @@ func (o *requestor) fetchOptions(path string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// Do a few retries before giving up - idempotent operations only
+func (o *requestor) fetchWithRetry(path string, resource string) ([]byte, error) {
+	retriesLeft := 3
+	// Currently, this retries all requests, not just retryable ones.
+	// At times, Finagle is nice
+	for ;;retriesLeft-- {
+		result, err := o.fetch(path, resource)
+		if err != nil {
+			log.Printf("Error, retrying: %s", err)
+			if retriesLeft <= 0 {
+				return nil, err
+			}
+		} else {
+			return result, nil
+		}
+	}
 }
 
 // Peform a URL fetch and read into a []byte
