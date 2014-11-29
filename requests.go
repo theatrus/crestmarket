@@ -190,6 +190,8 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 }
 
 // Deserialize the json for the root object into a Root
+// Nested resources are delineated with a "/", but
+// are unpacked via heuristics.
 func unpackRoot(body []byte) (*Root, error) {
 	var root Root
 	root.Resources = make(map[string]string)
@@ -198,16 +200,25 @@ func unpackRoot(body []byte) (*Root, error) {
 		return nil, err
 	}
 
-	for service, item := range rroots {
-		itemM, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		href, ok := itemM["href"].(string)
-		if ok {
-			root.Resources[service] = href
+	var recurse func(string, map[string]interface{})
+
+	recurse = func(base string, items map[string]interface{}) {
+		for service, item := range items {
+			itemM, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			href, ok := itemM["href"].(string)
+			if ok {
+				root.Resources[base+service] = href
+			} else if len(itemM) > 0 {
+				recurse(base+service+"/", itemM)
+			} else {
+				return
+			}
 		}
 	}
+	recurse("", rroots)
 	return &root, nil
 }
 
@@ -325,7 +336,7 @@ func (o *requestor) fetchWithRetry(path string, resource string) ([]byte, error)
 	retriesLeft := 3
 	// Currently, this retries all requests, not just retryable ones.
 	// At times, Finagle is nice
-	for ;;retriesLeft-- {
+	for ; ; retriesLeft-- {
 		result, err := o.fetch(path, resource)
 		if err != nil {
 			log.Printf("Error, retrying: %s", err)
