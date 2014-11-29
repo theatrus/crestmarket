@@ -87,8 +87,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(requestor.Root())
-
 	items, err := requestor.Types()
 	if err != nil {
 		log.Fatal(err)

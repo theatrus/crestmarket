@@ -69,13 +69,13 @@ type CRESTRequestor interface {
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	req := requestor{transport, nil}
 
-	root, err := req.Root()
+	root, err := req.fetchRoot()
 	if err != nil {
 		return nil, err
 	}
+
+	// This doesn't appear in the root resources yet, but are part of it
 	root.Resources["marketOrders"] = "https://api-sisi.testeveonline.com/market/"
-	delete(root.Resources, "marketPrices")
-	delete(root.Resources, "marketGroups")
 
 	req.root = root
 	return &req, nil
@@ -213,9 +213,9 @@ func unpackRoot(body []byte) (*Root, error) {
 
 //////////////////////////////////////////////////////////////////////////
 
-func (o *requestor) walkPages(path string, extractor func(*page) error) error {
+func (o *requestor) walkPages(path string, resource string, extractor func(*page) error) error {
 	for {
-		body, err := o.fetch(path)
+		body, err := o.fetch(path, resource)
 		if err != nil {
 			return err
 		}
@@ -239,7 +239,8 @@ func (o *requestor) walkPages(path string, extractor func(*page) error) error {
 func (o *requestor) Regions() (*Regions, error) {
 	path := o.root.Resources["regions"]
 	regions := newRegions()
-	err := o.walkPages(path, func(page *page) error { return unpackRegions(regions, page) })
+	err := o.walkPages(path, "regions",
+		func(page *page) error { return unpackRegions(regions, page) })
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +251,8 @@ func (o *requestor) Regions() (*Regions, error) {
 func (o *requestor) Types() (*MarketTypes, error) {
 	path := o.root.Resources["marketTypes"]
 	its := newMarketTypes()
-	err := o.walkPages(path, func(page *page) error { return unpackMarketTypes(its, page) })
+	err := o.walkPages(path, "marketTypes",
+		func(page *page) error { return unpackMarketTypes(its, page) })
 	if err != nil {
 		return nil, err
 	}
@@ -271,6 +273,7 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 	path := o.root.Resources["marketOrders"]
 	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)
 	err := o.walkPages(path,
+		"marketOrders",
 		func(page *page) error {
 			return unpackMarketOrders(marketOrders, mtype, page)
 		})
@@ -278,19 +281,50 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 }
 
 func (o *requestor) Root() (*Root, error) {
+	return o.root, nil
+}
 
-	body, err := o.fetch("/")
+func (o *requestor) fetchRoot() (*Root, error) {
+
+	body, err := o.fetch("/", "crestEndpoint")
 	if err != nil {
 		return nil, err
 	}
 	return unpackRoot(body)
 }
 
-// Peform a URL fetch and read into a []byte
-func (o *requestor) fetch(path string) ([]byte, error) {
+func (o *requestor) fetchOptions(path string) ([]byte, error) {
 	transport := o.transport
 
-	req, err := o.newCrestRequest(path)
+	req, err := o.newCrestRequest(path, "OPTIONS", false, "crestEndpoint")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := transport.RoundTrip(req)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Printf("%s Non-200 status code returned from fetching. %d %s\n",
+			path, resp.StatusCode, body)
+		return nil, errors.New(fmt.Sprintf("Resource not found: %s", path))
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
+// Peform a URL fetch and read into a []byte
+func (o *requestor) fetch(path string, resource string) ([]byte, error) {
+	transport := o.transport
+
+	req, err := o.newCrestRequest(path, "GET", true, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -315,29 +349,26 @@ func (o *requestor) fetch(path string) ([]byte, error) {
 	return body, nil
 }
 
-func (o *requestor) newCrestRequest(path string) (*http.Request, error) {
+func (o *requestor) newCrestRequest(path string,
+	verb string,
+	addAccept bool,
+	resource string) (*http.Request, error) {
+
 	var finalPath = path
 	if !strings.HasPrefix(path, "http") {
 		finalPath = prefix + finalPath
 	}
 	var accept string
-	// Find resource root to pass the appropiate known accept header
-	if finalPath == prefix+"/" || o.Root == nil {
-		// Root path is a special case
-		accept = rootAccept
-	} else {
-		// Iterate through to find prefixes
-		for resource, prefix := range o.root.Resources {
-			if resource == "crestEndpoint" { // Skip the root
-				continue
-			}
-			if strings.HasPrefix(finalPath, prefix) {
-				accept = resourceVersions[resource]
-				break
-			}
+	if addAccept {
+		// Find resource root to pass the appropiate known accept header
+		if finalPath == prefix+"/" || o.Root == nil {
+			// Root path is a special case
+			accept = rootAccept
+		} else {
+			accept = resourceVersions[resource]
 		}
 	}
-	req, err := http.NewRequest("GET", finalPath, nil)
+	req, err := http.NewRequest(verb, finalPath, nil)
 	if accept != "" {
 		accept = accept + "; charset=utf-8"
 	} else {
