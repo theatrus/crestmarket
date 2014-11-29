@@ -106,8 +106,10 @@ func main() {
 	trit := items.ByName("Tritanium")
 	fmt.Println(trit)
 
-	err = requestor.MarketOrders(theForge, trit, true)
+	mo, err := requestor.MarketOrders(theForge, trit, true)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Printf("%s\n", mo)
 }

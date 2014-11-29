@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -31,6 +32,8 @@ const (
 
 	// The root resource version this library will work with.
 	rootAccept = "application/vnd.ccp.eve.Api-v3+json"
+
+	RFC3339SansTz = "2006-01-02T15:04:05"
 )
 
 // Basic definitions of resource types
@@ -60,7 +63,7 @@ type CRESTRequestor interface {
 	// Return a list of all known types
 	Types() (*MarketTypes, error)
 	// Market orders
-	MarketOrders(region *Region, mtype *MarketType, buy bool) error
+	MarketOrders(region *Region, mtype *MarketType, buy bool) (*MarketOrders, error)
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
@@ -154,6 +157,38 @@ func unpackMarketTypes(its *MarketTypes, page *page) error {
 	return nil
 }
 
+func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
+	items := page.items
+
+	for _, item := range items {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			return errors.New("Can't unpack an order")
+		}
+		buy := itemMap["buy"].(bool)
+		duration := int(itemMap["duration"].(float64))
+		href := itemMap["href"].(string)
+		issued, err := time.Parse(RFC3339SansTz, itemMap["issued"].(string))
+		if err != nil {
+			return err
+		}
+		minVolume := int(itemMap["minVolume"].(float64))
+		price := itemMap["price"].(float64)
+		mrange := itemMap["range"].(string)
+		volume := int(itemMap["volume"].(float64))
+
+		locationMap := itemMap["location"].(map[string]interface{})
+		location := Location{locationMap["name"].(string), locationMap["href"].(string)}
+
+		mo.Orders = append(mo.Orders,
+			&MarketOrder{buy, duration,
+				href, issued, location,
+				minVolume, price, mrange,
+				*mt, volume})
+	}
+	return nil
+}
+
 // Deserialize the json for the root object into a Root
 func unpackRoot(body []byte) (*Root, error) {
 	var root Root
@@ -223,7 +258,7 @@ func (o *requestor) Types() (*MarketTypes, error) {
 	return its, nil
 }
 
-func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) error {
+func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*MarketOrders, error) {
 	var orderType string
 	if buy {
 		orderType = "buy"
@@ -231,11 +266,15 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) er
 		orderType = "sell"
 	}
 
+	marketOrders := NewMarketOrders()
+
 	path := o.root.Resources["marketOrders"]
 	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)
-	log.Println("Path: ", path)
-	err := o.walkPages(path, func(page *page) error { log.Println(page); return nil })
-	return err
+	err := o.walkPages(path,
+		func(page *page) error {
+			return unpackMarketOrders(marketOrders, mtype, page)
+		})
+	return marketOrders, err
 }
 
 func (o *requestor) Root() (*Root, error) {
@@ -273,7 +312,6 @@ func (o *requestor) fetch(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println(resp.Header["Content-Type"])
 	return body, nil
 }
 
@@ -305,7 +343,7 @@ func (o *requestor) newCrestRequest(path string) (*http.Request, error) {
 	} else {
 		accept = "charset=utf-8"
 	}
-	log.Println("Adding accept type of", accept)
+
 	req.Header.Add("Accept", accept)
 
 	return req, err

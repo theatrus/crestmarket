@@ -1,5 +1,9 @@
 package crestmarket
 
+import (
+	"time"
+)
+
 // An EVE-Online Region
 type Region struct {
 	Name string
@@ -52,6 +56,34 @@ func (r *MarketTypes) ByName(name string) *MarketType {
 // Build a new MarketTypes structure
 func newMarketTypes() *MarketTypes {
 	return &MarketTypes{make([]*MarketType, 0)}
+}
+
+// A universe location
+type Location struct {
+	Name string
+	Href string
+}
+
+type MarketOrder struct {
+	Buy       bool
+	Duation   int
+	Href      string
+	Issued    time.Time
+	Location  Location
+	MinVolume int
+	Price     float64
+	Range     string
+	Type      MarketType
+	Volume    int
+}
+
+type MarketOrders struct {
+	Orders []*MarketOrder
+}
+
+// Make a new MarketOrders structure
+func NewMarketOrders() *MarketOrders {
+	return &MarketOrders{make([]*MarketOrder, 0)}
 }
 
 // Defines a Root of all possible resources on this API
