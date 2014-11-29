@@ -17,21 +17,41 @@ func newRegions() *Regions {
 	return &Regions{make([]*Region, 0)}
 }
 
+// TODO: Build a map indexed by something useful
+func (r *Regions) ByName(name string) *Region {
+	for _, region := range r.AllRegions {
+		if region.Name == name {
+			return region
+		}
+	}
+	return nil
+}
+
 // An inventory type
-type InventoryType struct {
+type MarketType struct {
 	Name string
 	Href string
 	Id   int
 }
 
 // A collection of inventory types
-type InventoryTypes struct {
-	Types []*InventoryType
+type MarketTypes struct {
+	Types []*MarketType
 }
 
-// Build a new InventoryTypes structure
-func newInventoryTypes() *InventoryTypes {
-	return &InventoryTypes{make([]*InventoryType, 0)}
+// TODO: Build a map indexed by something useful
+func (r *MarketTypes) ByName(name string) *MarketType {
+	for _, mtype := range r.Types {
+		if mtype.Name == name {
+			return mtype
+		}
+	}
+	return nil
+}
+
+// Build a new MarketTypes structure
+func newMarketTypes() *MarketTypes {
+	return &MarketTypes{make([]*MarketType, 0)}
 }
 
 // Defines a Root of all possible resources on this API

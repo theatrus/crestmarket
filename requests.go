@@ -17,6 +17,7 @@ package crestmarket
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
@@ -40,6 +41,8 @@ func init() {
 		"crestEndpoint": rootAccept,
 		"regions":       "application/vnd.ccp.eve.RegionCollection-v1+json",
 		"itemTypes":     "application/vnd.ccp.eve.ItemTypeCollection-v1+json",
+		"marketOrders":  "application/vnd.ccp.eve.MarketOrderCollection-v1+json",
+		"marketTypes":   "application/vnd.ccp.eve.MarketOrderCollection-v1+json",
 	}
 }
 
@@ -55,7 +58,9 @@ type CRESTRequestor interface {
 	// Return a list of all regions
 	Regions() (*Regions, error)
 	// Return a list of all known types
-	Types() (*InventoryTypes, error)
+	Types() (*MarketTypes, error)
+	// Market orders
+	MarketOrders(region *Region, mtype *MarketType, buy bool) error
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
@@ -65,6 +70,10 @@ func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	if err != nil {
 		return nil, err
 	}
+	root.Resources["marketOrders"] = "https://api-sisi.testeveonline.com/market/"
+	delete(root.Resources, "marketPrices")
+	delete(root.Resources, "marketGroups")
+
 	req.root = root
 	return &req, nil
 }
@@ -125,25 +134,21 @@ func unpackRegions(regions *Regions, page *page) error {
 	return nil
 }
 
-// TODO: needs to be normalized with a base resource type with Regions
-// and other similar items - the code is identical except for the structure
-func unpackInventoryTypes(its *InventoryTypes, page *page) error {
+func unpackMarketTypes(its *MarketTypes, page *page) error {
 	items := page.items
 
 	for _, item := range items {
 		itemMap, ok := item.(map[string]interface{})
 		if !ok {
-			return errors.New("Can't unpack an inventorytype")
+			return errors.New("Can't unpack an marketType")
 		}
 
-		href := itemMap["href"].(string)
-		idSplit := strings.Split(href, "/")
-		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
-		if err != nil {
-			return err
-		}
+		mtype, ok := itemMap["type"].(map[string]interface{})
 
-		it := InventoryType{itemMap["name"].(string), href, int(id)}
+		href := mtype["href"].(string)
+		id := mtype["id"].(float64)
+
+		it := MarketType{mtype["name"].(string), href, int(id)}
 		its.Types = append(its.Types, &it)
 	}
 	return nil
@@ -180,6 +185,9 @@ func (o *requestor) walkPages(path string, extractor func(*page) error) error {
 			return err
 		}
 		page, err := unpackPage(body)
+		if err != nil {
+			return err
+		}
 		err = extractor(page)
 		if err != nil {
 			return err
@@ -204,15 +212,30 @@ func (o *requestor) Regions() (*Regions, error) {
 	return regions, nil
 }
 
-func (o *requestor) Types() (*InventoryTypes, error) {
-	path := o.root.Resources["itemTypes"]
-	its := newInventoryTypes()
-	err := o.walkPages(path, func(page *page) error { return unpackInventoryTypes(its, page) })
+func (o *requestor) Types() (*MarketTypes, error) {
+	path := o.root.Resources["marketTypes"]
+	its := newMarketTypes()
+	err := o.walkPages(path, func(page *page) error { return unpackMarketTypes(its, page) })
 	if err != nil {
 		return nil, err
 	}
 
 	return its, nil
+}
+
+func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) error {
+	var orderType string
+	if buy {
+		orderType = "buy"
+	} else {
+		orderType = "sell"
+	}
+
+	path := o.root.Resources["marketOrders"]
+	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)
+	log.Println("Path: ", path)
+	err := o.walkPages(path, func(page *page) error { log.Println(page); return nil })
+	return err
 }
 
 func (o *requestor) Root() (*Root, error) {
@@ -236,8 +259,17 @@ func (o *requestor) fetch(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if dep, ok := resp.Header["X-Deprecated"]; ok {
+		log.Println("Deprecated API: ", dep)
+	}
 	body, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		log.Printf("%s Non-200 status code returned from fetching. %d %s\n",
+			path, resp.StatusCode, body)
+		return nil, errors.New(fmt.Sprintf("Resource not found: %s", path))
+	}
 	if err != nil {
 		return nil, err
 	}

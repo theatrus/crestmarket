@@ -86,16 +86,28 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(requestor.Root())
+
+	items, err := requestor.Types()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	regions, err := requestor.Regions()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s", regions)
+	//fmt.Printf("%s", regions)
 
-	
-	its, err := requestor.Types()
+	theForge := regions.ByName("The Forge")
+	fmt.Println(theForge)
+
+	trit := items.ByName("Tritanium")
+	fmt.Println(trit)
+
+	err = requestor.MarketOrders(theForge, trit, true)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s", its)
 }
