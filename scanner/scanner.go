@@ -68,7 +68,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	store := helper.FileTokenStore{"token.json"}
+	store := helper.FileTokenStore{Filename: "token.json"}
 
 	base, err := crestmarket.NewOauthOptions(settings)
 	t, err := base.NewTransportFromTokenStore(&store)
