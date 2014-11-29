@@ -17,7 +17,7 @@ package crestmarket
 import (
 	"encoding/json"
 	"flag"
-	"github.com/theatrus/httpattempts"
+	"github.com/theatrus/mediate"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
@@ -62,7 +62,7 @@ func NewOauthOptions(settings *OAuthSettings) (*oauth2.Options, error) {
 	}
 
 	httpClient := &http.Client{}
-	httpClient.Transport = httpattempts.FixedRetries(3, http.DefaultTransport)
+	httpClient.Transport = mediate.FixedRetries(3, http.DefaultTransport)
 
 	return oauth2.New(
 		oauth2.Client(settings.ClientId, settings.ClientSecret),
