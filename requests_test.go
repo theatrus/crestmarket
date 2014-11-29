@@ -18,7 +18,17 @@ func contains(r []*Region, name string) *Region {
 }
 
 func TestUnpackRegions(t *testing.T) {
-	regions, err := unpackRegions(regionsData)
+	regions := newRegions()
+	page, err := unpackPage(regionsData)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if page.hasNext {
+		t.Error("Regions has a next page when it shouldn't")
+	}
+
+	regions, err = unpackRegions(regions, page)
 
 	if err != nil {
 		t.Error(err)

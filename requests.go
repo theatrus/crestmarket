@@ -18,9 +18,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -38,15 +38,15 @@ var resourceVersions map[string]string
 
 func init() {
 	resourceVersions = map[string]string{
-		"root" : rootAccept,
-		"regions": "application/vnd.ccp.eve.RegionCollection-v1+json",
+		"root":      rootAccept,
+		"regions":   "application/vnd.ccp.eve.RegionCollection-v1+json",
 		"itemTypes": "application/vnd.ccp.eve.ItemTypeCollection-v1+json",
 	}
 }
 
 type requestor struct {
 	transport *oauth2.Transport
-	root *Root
+	root      *Root
 }
 
 // The base type of fetcher for all CREST data types.
@@ -70,12 +70,13 @@ func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	return &req, nil
 }
 
-func unpackRegions(body []byte) (*Regions, error) {
-	// Eschewing the normal tagged
-	// unpacking here as the return structure is not
-	// ideal for the in-application representation
+type page struct {
+	items    []interface{}
+	hasNext  bool
+	nextHref string
+}
 
-	regions := Regions{make([]*Region, 0)}
+func unpackPage(body []byte) (*page, error) {
 	raw := make(map[string]interface{})
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, err
@@ -83,8 +84,22 @@ func unpackRegions(body []byte) (*Regions, error) {
 
 	items, ok := raw["items"].([]interface{})
 	if !ok {
-		return nil, errors.New("Can't find an items key when unpacking regions")
+		return nil, errors.New("Can't find an items key in the response")
 	}
+
+	hasNext := false
+	next := ""
+
+	if nextHref, ok := raw["next"].(map[string]interface{}); ok {
+		next = nextHref["href"].(string)
+		hasNext = true
+	}
+
+	return &page{items, hasNext, next}, nil
+}
+
+func unpackRegions(regions *Regions, page *page) (*Regions, error) {
+	items := page.items
 
 	for _, item := range items {
 		itemMap, ok := item.(map[string]interface{})
@@ -102,7 +117,7 @@ func unpackRegions(body []byte) (*Regions, error) {
 		region := Region{itemMap["name"].(string), href, int(id)}
 		regions.AllRegions = append(regions.AllRegions, &region)
 	}
-	return &regions, nil
+	return regions, nil
 }
 
 func (o *requestor) Regions() (*Regions, error) {
@@ -111,7 +126,10 @@ func (o *requestor) Regions() (*Regions, error) {
 	if err != nil {
 		return nil, err
 	}
-	regions, err := unpackRegions(body)
+
+	regions := newRegions()
+	page, err := unpackPage(body)
+	regions, err = unpackRegions(regions, page)
 
 	return regions, nil
 }
@@ -184,7 +202,7 @@ func (o *requestor) newCrestRequest(path string) (*http.Request, error) {
 	}
 	var accept string
 	// Find resource root to pass the appropiate known accept header
-	if finalPath == prefix + "/" || o.Root == nil {
+	if finalPath == prefix+"/" || o.Root == nil {
 		// Root path is a special case
 		accept = rootAccept
 	} else {
