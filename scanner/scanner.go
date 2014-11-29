@@ -93,8 +93,9 @@ func main() {
 	fmt.Printf("%s", regions)
 
 	
-	err = requestor.Types()
+	its, err := requestor.Types()
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("%s", its)
 }

@@ -12,6 +12,7 @@ type Regions struct {
 	AllRegions []*Region
 }
 
+// Build a new Regions structure
 func newRegions() *Regions {
 	return &Regions{make([]*Region, 0)}
 }
@@ -20,7 +21,7 @@ func newRegions() *Regions {
 type InventoryType struct {
 	Name string
 	Href string
-	Id int
+	Id   int
 }
 
 // A collection of inventory types
@@ -28,8 +29,8 @@ type InventoryTypes struct {
 	Types []*InventoryType
 }
 
-// Build a new InventoryTypes
-func newInventoryTypes() (*InventoryTypes) {
+// Build a new InventoryTypes structure
+func newInventoryTypes() *InventoryTypes {
 	return &InventoryTypes{make([]*InventoryType, 0)}
 }
 

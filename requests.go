@@ -17,7 +17,6 @@ package crestmarket
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
@@ -38,9 +37,9 @@ var resourceVersions map[string]string
 
 func init() {
 	resourceVersions = map[string]string{
-		"root":      rootAccept,
-		"regions":   "application/vnd.ccp.eve.RegionCollection-v1+json",
-		"itemTypes": "application/vnd.ccp.eve.ItemTypeCollection-v1+json",
+		"crestEndpoint": rootAccept,
+		"regions":       "application/vnd.ccp.eve.RegionCollection-v1+json",
+		"itemTypes":     "application/vnd.ccp.eve.ItemTypeCollection-v1+json",
 	}
 }
 
@@ -56,7 +55,7 @@ type CRESTRequestor interface {
 	// Return a list of all regions
 	Regions() (*Regions, error)
 	// Return a list of all known types
-	Types() error
+	Types() (*InventoryTypes, error)
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
@@ -69,6 +68,8 @@ func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	req.root = root
 	return &req, nil
 }
+
+////////////////////////////////////////////////////////////////////////////
 
 type page struct {
 	items    []interface{}
@@ -124,6 +125,54 @@ func unpackRegions(regions *Regions, page *page) error {
 	return nil
 }
 
+// TODO: needs to be normalized with a base resource type with Regions
+// and other similar items - the code is identical except for the structure
+func unpackInventoryTypes(its *InventoryTypes, page *page) error {
+	items := page.items
+
+	for _, item := range items {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			return errors.New("Can't unpack an inventorytype")
+		}
+
+		href := itemMap["href"].(string)
+		idSplit := strings.Split(href, "/")
+		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
+		if err != nil {
+			return err
+		}
+
+		it := InventoryType{itemMap["name"].(string), href, int(id)}
+		its.Types = append(its.Types, &it)
+	}
+	return nil
+}
+
+// Deserialize the json for the root object into a Root
+func unpackRoot(body []byte) (*Root, error) {
+	var root Root
+	root.Resources = make(map[string]string)
+	rroots := make(map[string]interface{})
+	if err := json.Unmarshal(body, &rroots); err != nil {
+		return nil, err
+	}
+
+	for service, item := range rroots {
+		itemM, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		href, ok := itemM["href"].(string)
+		if ok {
+			root.Resources[service] = href
+		}
+	}
+	return &root, nil
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 func (o *requestor) walkPages(path string, extractor func(*page) error) error {
 	for {
 		body, err := o.fetch(path)
@@ -155,14 +204,15 @@ func (o *requestor) Regions() (*Regions, error) {
 	return regions, nil
 }
 
-func (o *requestor) Types() error {
+func (o *requestor) Types() (*InventoryTypes, error) {
 	path := o.root.Resources["itemTypes"]
-	err := o.walkPages(path, func(page *page) error { fmt.Printf("%s", page); return nil })
+	its := newInventoryTypes()
+	err := o.walkPages(path, func(page *page) error { return unpackInventoryTypes(its, page) })
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return nil
+	return its, nil
 }
 
 func (o *requestor) Root() (*Root, error) {
@@ -172,28 +222,6 @@ func (o *requestor) Root() (*Root, error) {
 		return nil, err
 	}
 	return unpackRoot(body)
-}
-
-// Deserialize the json for the root object into a Root
-func unpackRoot(body []byte) (*Root, error) {
-	var root Root
-	root.Resources = make(map[string]string)
-	rroots := make(map[string]interface{})
-	if err := json.Unmarshal(body, &rroots); err != nil {
-		return nil, err
-	}
-
-	for service, item := range rroots {
-		itemM, ok := item.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		href, ok := itemM["href"].(string)
-		if ok {
-			root.Resources[service] = href
-		}
-	}
-	return &root, nil
 }
 
 // Peform a URL fetch and read into a []byte
@@ -230,6 +258,9 @@ func (o *requestor) newCrestRequest(path string) (*http.Request, error) {
 	} else {
 		// Iterate through to find prefixes
 		for resource, prefix := range o.root.Resources {
+			if resource == "crestEndpoint" { // Skip the root
+				continue
+			}
 			if strings.HasPrefix(finalPath, prefix) {
 				accept = resourceVersions[resource]
 				break
