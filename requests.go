@@ -33,7 +33,8 @@ const (
 	// The root resource version this library will work with.
 	rootAccept = "application/vnd.ccp.eve.Api-v3+json"
 
-	RFC3339SansTz = "2006-01-02T15:04:05"
+	rfc3339SansTz = "2006-01-02T15:04:05"
+	userAgent = "crestmarket/0.1"
 )
 
 // Basic definitions of resource types
@@ -168,7 +169,7 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 		buy := itemMap["buy"].(bool)
 		duration := int(itemMap["duration"].(float64))
 		href := itemMap["href"].(string)
-		issued, err := time.Parse(RFC3339SansTz, itemMap["issued"].(string))
+		issued, err := time.Parse(rfc3339SansTz, itemMap["issued"].(string))
 		if err != nil {
 			return err
 		}
@@ -385,6 +386,6 @@ func (o *requestor) newCrestRequest(path string,
 	}
 
 	req.Header.Add("Accept", accept)
-
+	req.Header.Add("User-Agent", userAgent)
 	return req, err
 }
