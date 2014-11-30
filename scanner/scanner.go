@@ -88,16 +88,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	items, err := requestor.Types()
-	if err != nil {
-		log.Fatal(err)
-	}
+	itemsChan := make(chan *crestmarket.MarketTypes)
+	go func(done chan<- *crestmarket.MarketTypes) {
+		items, err := requestor.Types()
+		if err != nil {
+			log.Fatal(err)
+		}
+		done <- items
+	}(itemsChan)
 
-	regions, err := requestor.Regions()
-	if err != nil {
-		log.Fatal(err)
-	}
-	//fmt.Printf("%s", regions)
+	regionsChan := make(chan *crestmarket.Regions)
+	go func(done chan<- *crestmarket.Regions ) {
+		regions, err := requestor.Regions()
+		if err != nil {
+			log.Fatal(err)
+		}
+		done <- regions
+	}(regionsChan)
+
+	items := <-itemsChan
+	regions := <-regionsChan
 
 	theForge := regions.ByName("The Forge")
 	fmt.Println(theForge)
