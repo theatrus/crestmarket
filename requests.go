@@ -34,7 +34,7 @@ const (
 	rootAccept = "application/vnd.ccp.eve.Api-v3+json"
 
 	rfc3339SansTz = "2006-01-02T15:04:05"
-	userAgent = "crestmarket/0.1"
+	userAgent     = "crestmarket/0.1"
 )
 
 // Basic definitions of resource types
@@ -65,6 +65,8 @@ type CRESTRequestor interface {
 	Types() (*MarketTypes, error)
 	// Market orders
 	MarketOrders(region *Region, mtype *MarketType, buy bool) (*MarketOrders, error)
+	// Fetch a combo of both buy and sell market orders, returning both
+	BuySellMarketOrders(region *Region, mtype *MarketType) (*MarketOrders, error)
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
@@ -288,6 +290,33 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 			return unpackMarketOrders(marketOrders, mtype, page)
 		})
 	return marketOrders, err
+}
+
+func (o *requestor) BuySellMarketOrders(region *Region, mtype *MarketType) (*MarketOrders, error) {
+	type ordersRet struct {
+		orders *MarketOrders
+		err    error
+	}
+
+	mchan := make(chan ordersRet)
+	defer close(mchan)
+	getAndSend := func(buy bool) {
+		orders, error := o.MarketOrders(region, mtype, buy)
+		mchan <- ordersRet{orders, error}
+	}
+	go getAndSend(true)
+	go getAndSend(false)
+
+	r1 := <-mchan
+	if r1.err != nil {
+		return nil, r1.err
+	}
+	r2 := <-mchan
+	if r2.err != nil {
+		return nil, r2.err
+	}
+	r1.orders.Orders = append(r1.orders.Orders, r2.orders.Orders...)
+	return r1.orders, nil
 }
 
 func (o *requestor) Root() (*Root, error) {
