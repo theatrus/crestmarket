@@ -28,6 +28,8 @@ func main() {
 
 	proxy := &crestmarket.CRESTProxy{Requestor: requestor, NewURLRoot: url}
 
+	log.Printf("Starting server at %s\n", listen)
+
 	err = http.ListenAndServe(listen, proxy)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
