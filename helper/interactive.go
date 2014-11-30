@@ -43,6 +43,9 @@ func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenS
 	return t, nil
 }
 
+// InteractiveStartup performs a console interactive handshake
+// or a simple refresh of tokens and stores
+// tokens gathered in a file called token.json
 func InteractiveStartup(settings *crestmarket.OAuthSettings) (crestmarket.CRESTRequestor, error) {
 	store := FileTokenStore{Filename: "token.json"}
 
