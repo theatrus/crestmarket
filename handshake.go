@@ -47,7 +47,7 @@ func LoadSettings(filename string) (*OAuthSettings, error) {
 	return &settings, nil
 }
 
-func NewOauthOptions(settings *OAuthSettings) (*oauth2.Options, error) {
+func NewOAuthOptions(settings *OAuthSettings) (*oauth2.Options, error) {
 	var endpoint oauth2.Option
 	if isSisi {
 		endpoint = oauth2.Endpoint(
