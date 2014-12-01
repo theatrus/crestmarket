@@ -2,9 +2,11 @@
 
 [![GoDoc](https://godoc.org/github.com/theatrus/crestmarket?status.svg)](http://godoc.org/github.com/theatrus/crestmarket)
 [![Build Status](https://travis-ci.org/theatrus/crestmarket.svg)](https://travis-ci.org/theatrus/crestmarket)
+[![Gratipay](http://img.shields.io/gratipay/theatrus.svg)](https://gratipay.com/theatrus/)
 
-A reference implementation of a full market scraper using the
-EVE-Online CREST endpoint.
+A reference library for working with the authenticated EVE-Online
+CREST endpoint, including market data. Licensed under the Apache
+License, 2.0.
 
 
 ## Getting started
