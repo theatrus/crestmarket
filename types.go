@@ -78,12 +78,14 @@ type MarketOrder struct {
 }
 
 type MarketOrders struct {
+	Region *Region
+	Type   *MarketType
 	Orders []*MarketOrder
 }
 
 // Make a new MarketOrders structure
 func NewMarketOrders() *MarketOrders {
-	return &MarketOrders{make([]*MarketOrder, 0)}
+	return &MarketOrders{Orders: make([]*MarketOrder, 0)}
 }
 
 // Defines a Root of all possible resources on this API

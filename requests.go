@@ -281,6 +281,8 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 	}
 
 	marketOrders := NewMarketOrders()
+	marketOrders.Region = region
+	marketOrders.Type = mtype
 
 	path := o.root.Resources["marketOrders"]
 	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)
