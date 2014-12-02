@@ -8,6 +8,18 @@ A reference library for working with the authenticated EVE-Online
 CREST endpoint, including market data. Licensed under the Apache
 License, 2.0.
 
+### Features
+
+* OAuth2 negotiation and integration.
+* A sample scanner application which demonstrates how to call
+endpoints and receive data.
+* Converters to output the
+[Unified Uploader](http://dev.eve-central.com/unifieduploader/start)
+format JSON for all market orders fetched.
+* A "proxy server" to allow interactive exploration of the CREST
+  structure without needing to navigate OAuth2 in the browser or in
+  your own application.
+
 
 ## Getting started
 
@@ -52,3 +64,9 @@ Complete any authorization needed on the console, and then open a web
 browser to http://localhost:12345 If you have a browser plugin which
 linkifies and displays JSON (such as http://jsonview.com/ or other
 more modern replacements) you can click to navigate CREST.
+
+## Gotchas
+
+ * The /universe/ endpoints are not yet available, so map data and ID
+ fetching uses munging in a few places.
+
