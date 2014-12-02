@@ -63,7 +63,7 @@ func newMarketTypes() *MarketTypes {
 type Station struct {
 	Name string
 	Href string
-	Id int
+	Id   int
 }
 
 type MarketOrder struct {
@@ -72,7 +72,7 @@ type MarketOrder struct {
 	Href      string
 	Id        int
 	Issued    time.Time
-	Station  Station
+	Station   Station
 	MinVolume int
 	Price     float64
 	Range     string

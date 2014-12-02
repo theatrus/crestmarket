@@ -44,7 +44,7 @@ type unified struct {
 // SerializeOrdersUnified outputs a JSON representation
 // in the Unified Uploader format convention
 // http://dev.eve-central.com/unifieduploader/start
-func SerialzeOrdersUnified(orders *MarketOrders, at time.Time) ([]byte, error) {
+func SerializeOrdersUnified(orders *MarketOrders, at time.Time) ([]byte, error) {
 	now := at.UTC().Format(dateFormat)
 
 	out := unified{Rowsets: make([]*rowset, 1),

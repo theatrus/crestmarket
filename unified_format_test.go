@@ -24,7 +24,7 @@ func TestSerializeUnified(t *testing.T) {
 		MinVolume: 1, Price: 3.0, Range: "solarsystem", Type: *mtype, Volume: 3000}
 	orders.Orders = append(orders.Orders, &order)
 
-	data, err := SerialzeOrdersUnified(orders, then)
+	data, err := SerializeOrdersUnified(orders, then)
 	log.Printf("%s\n", data)
 	if err != nil {
 		t.Error(err)

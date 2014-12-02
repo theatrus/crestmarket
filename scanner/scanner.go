@@ -20,6 +20,7 @@ import (
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/crestmarket/helper"
 	"log"
+	"time"
 )
 
 func main() {
@@ -68,5 +69,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%s\n", mo)
+	serial, err := crestmarket.SerializeOrdersUnified(mo, time.Now())
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%s\n", serial)
 }
