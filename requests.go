@@ -171,6 +171,11 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 		buy := itemMap["buy"].(bool)
 		duration := int(itemMap["duration"].(float64))
 		href := itemMap["href"].(string)
+		idSplit := strings.Split(href, "/")
+		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
+		if err != nil {
+			return err
+		}
 		issued, err := time.Parse(rfc3339SansTz, itemMap["issued"].(string))
 		if err != nil {
 			return err
@@ -185,7 +190,7 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 
 		mo.Orders = append(mo.Orders,
 			&MarketOrder{buy, duration,
-				href, issued, location,
+				href, int(id), issued, location,
 				minVolume, price, mrange,
 				*mt, volume})
 	}
@@ -283,6 +288,7 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 	marketOrders := NewMarketOrders()
 	marketOrders.Region = region
 	marketOrders.Type = mtype
+	marketOrders.Fetched = time.Now()
 
 	path := o.root.Resources["marketOrders"]
 	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)

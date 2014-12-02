@@ -1,6 +1,7 @@
 package crestmarket
 
 import (
+	"strconv"
 	"time"
 )
 
@@ -66,8 +67,9 @@ type Location struct {
 
 type MarketOrder struct {
 	Buy       bool
-	Duation   int
+	Duration  int
 	Href      string
+	Id        int
 	Issued    time.Time
 	Location  Location
 	MinVolume int
@@ -77,10 +79,29 @@ type MarketOrder struct {
 	Volume    int
 }
 
+// Numericrange returns the classical numeric range key
+// based on the string input/
+func (order *MarketOrder) NumericRange() int {
+	orderRange := 0
+	if order.Range == "solarsystem" {
+		orderRange = 0
+	} else if order.Range == "region" {
+		orderRange = 65535
+	} else if order.Range == "station" {
+		orderRange = -1
+	} else {
+		or, _ := strconv.ParseInt(order.Range, 10, 64)
+		orderRange = int(or)
+	}
+	return orderRange
+
+}
+
 type MarketOrders struct {
-	Region *Region
-	Type   *MarketType
-	Orders []*MarketOrder
+	Region  *Region
+	Type    *MarketType
+	Orders  []*MarketOrder
+	Fetched time.Time
 }
 
 // Make a new MarketOrders structure
