@@ -59,10 +59,11 @@ func newMarketTypes() *MarketTypes {
 	return &MarketTypes{make([]*MarketType, 0)}
 }
 
-// A universe location
-type Location struct {
+// A station
+type Station struct {
 	Name string
 	Href string
+	Id int
 }
 
 type MarketOrder struct {
@@ -71,7 +72,7 @@ type MarketOrder struct {
 	Href      string
 	Id        int
 	Issued    time.Time
-	Location  Location
+	Station  Station
 	MinVolume int
 	Price     float64
 	Range     string

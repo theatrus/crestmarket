@@ -92,6 +92,17 @@ type page struct {
 	nextHref string
 }
 
+// There are a few HREFs we receive which do not yet
+// yield valid resources - for example stations.
+// We use a dumb extractor for this.
+// BUG(yann): This should be fixed once more of
+// CREST becomes available.
+func idFromUrl(href string) int {
+	idSplit := strings.Split(href, "/")
+	id, _ := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
+	return int(id)
+}
+
 // Unpack a page structure and extract optional next fields
 // This is useful for a serial request structure - in order
 // to parallelize page fetching different heuristics need to
@@ -128,13 +139,8 @@ func unpackRegions(regions *Regions, page *page) error {
 		}
 
 		href := itemMap["href"].(string)
-		idSplit := strings.Split(href, "/")
-		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
-		if err != nil {
-			return err
-		}
-
-		region := Region{itemMap["name"].(string), href, int(id)}
+		id := idFromUrl(href)
+		region := Region{itemMap["name"].(string), href, id}
 		regions.AllRegions = append(regions.AllRegions, &region)
 	}
 	return nil
@@ -171,11 +177,7 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 		buy := itemMap["buy"].(bool)
 		duration := int(itemMap["duration"].(float64))
 		href := itemMap["href"].(string)
-		idSplit := strings.Split(href, "/")
-		id, err := strconv.ParseInt(idSplit[len(idSplit)-2], 10, 64)
-		if err != nil {
-			return err
-		}
+		id := idFromUrl(href)
 		issued, err := time.Parse(rfc3339SansTz, itemMap["issued"].(string))
 		if err != nil {
 			return err
@@ -186,7 +188,9 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 		volume := int(itemMap["volume"].(float64))
 
 		locationMap := itemMap["location"].(map[string]interface{})
-		location := Location{locationMap["name"].(string), locationMap["href"].(string)}
+		locationHref := locationMap["href"].(string)
+		locationId := idFromUrl(locationHref)
+		location := Station{locationMap["name"].(string), locationHref, locationId}
 
 		mo.Orders = append(mo.Orders,
 			&MarketOrder{buy, duration,

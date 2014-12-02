@@ -23,7 +23,7 @@ var columnNames []string
 func init() {
 	gen.Name = producerKey
 	gen.Version = producerVersion
-	columnNames = []string{"price", "volRemaining", "range", "orderID", "volEntered", "minVolume", "bid", "issueDate", "duration", "stationID", "solarSystemID"}
+	columnNames = []string{"price", "volRemaining", "range", "orderID", "volEntered", "minVolume", "bid", "issueDate", "duration", "stationID"}
 }
 
 type rowset struct {
@@ -66,7 +66,7 @@ func SerialzeOrdersUnified(orders *MarketOrders, at time.Time) ([]byte, error) {
 			order.Volume, order.NumericRange(),
 			order.Id, order.Volume, order.MinVolume,
 			order.Buy, order.Issued.Format(dateFormat),
-			order.Duration, 0, 0, //order.Location.Id, order.Location.Id,
+			order.Duration, order.Station.Id,
 		}
 		rowset.Rows[i] = &row
 	}
