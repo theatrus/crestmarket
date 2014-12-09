@@ -28,8 +28,6 @@ import (
 )
 
 const (
-	prefix = "https://api-sisi.testeveonline.com"
-
 	// The root resource version this library will work with.
 	rootAccept = "application/vnd.ccp.eve.Api-v3+json"
 
@@ -53,6 +51,7 @@ func init() {
 type requestor struct {
 	transport *oauth2.Transport
 	root      *Root
+	apiPrefix string
 }
 
 // The base type of fetcher for all CREST data types.
@@ -70,7 +69,14 @@ type CRESTRequestor interface {
 }
 
 func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
-	req := requestor{transport, nil}
+	var prefix string
+	if isSisi {
+		prefix = "https://api-sisi.testeveonline.com"
+	} else {
+		prefix = "https://crest-tq.eveonline.com/"
+	}
+
+	req := requestor{transport, nil, prefix}
 
 	root, err := req.fetchRoot()
 	if err != nil {
@@ -78,7 +84,7 @@ func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	}
 
 	// This doesn't appear in the root resources yet, but are part of it
-	root.Resources["marketOrders"] = "https://api-sisi.testeveonline.com/market/"
+	root.Resources["marketOrders"] = prefix + "/market/"
 
 	req.root = root
 	return &req, nil
@@ -296,6 +302,7 @@ func (o *requestor) MarketOrders(region *Region, mtype *MarketType, buy bool) (*
 
 	path := o.root.Resources["marketOrders"]
 	path = fmt.Sprintf("%s%d/orders/%s/?type=%s", path, region.Id, orderType, mtype.Href)
+	log.Println(path)
 	err := o.walkPages(path,
 		"marketOrders",
 		func(page *page) error {
@@ -407,12 +414,12 @@ func (o *requestor) newCrestRequest(path string,
 
 	var finalPath = path
 	if !strings.HasPrefix(path, "http") {
-		finalPath = prefix + finalPath
+		finalPath = o.apiPrefix + finalPath
 	}
 	var accept string
 	if addAccept {
 		// Find resource root to pass the appropiate known accept header
-		if finalPath == prefix+"/" || o.root == nil {
+		if finalPath == o.apiPrefix+"/" || o.root == nil {
 			// Root path is a special case
 			accept = rootAccept
 		} else {

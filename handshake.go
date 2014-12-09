@@ -16,19 +16,12 @@ package crestmarket
 
 import (
 	"encoding/json"
-	"flag"
 	"github.com/theatrus/mediate"
 	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
-
-var isSisi bool
-
-func init() {
-	flag.BoolVar(&isSisi, "scanner.sisi", true, "Call all endpoints on SiSi, turn off for production")
-}
 
 type OAuthSettings struct {
 	ClientId     string `json:"client_id"`
