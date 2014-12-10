@@ -52,7 +52,7 @@ func scanRegion(req crestmarket.CRESTRequestor,
 			continue
 		}
 		reader := bytes.NewReader(md)
-		resp, err := http.Post(, "application/json", reader)
+		resp, err := http.Post(uploadEndpoint, "application/json", reader)
 		if err != nil {
 			log.Printf("Error posting market data %s\n", err)
 			continue
