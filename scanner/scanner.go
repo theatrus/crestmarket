@@ -28,12 +28,12 @@ func scanRegion(req crestmarket.CRESTRequestor,
 	for _, item := range forItems.Types {
 		mo, err := req.BuySellMarketOrders(region, item)
 		if err != nil {
-			log.Println("fetch error: %s", err)
+			log.Printf("fetch error: %s\n", err)
 			continue
 		}
 		_, err = crestmarket.SerializeOrdersUnified(mo, time.Now())
 		if err != nil {
-			log.Println("Deserialize error: %s", err)
+			log.Printf("Deserialize error: %s\n", err)
 			continue
 		}
 	}
