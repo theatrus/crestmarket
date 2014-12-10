@@ -15,28 +15,53 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/crestmarket/helper"
+	"io/ioutil"
 	"log"
+	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 )
 
+const (
+	uploadEndpoint = "http://localhost"
+)
+
 func scanRegion(req crestmarket.CRESTRequestor,
 	region *crestmarket.Region, forItems *crestmarket.MarketTypes) {
-	for _, item := range forItems.Types {
+
+	perm := rand.Perm(len(forItems.Types))
+	dest := make([]*crestmarket.MarketType, len(forItems.Types))
+	for i, v := range perm {
+		dest[v] = forItems.Types[i]
+	}
+
+	for _, item := range dest {
 		mo, err := req.BuySellMarketOrders(region, item)
 		if err != nil {
 			log.Printf("fetch error: %s\n", err)
 			continue
 		}
-		_, err = crestmarket.SerializeOrdersUnified(mo, time.Now())
+		md, err := crestmarket.SerializeOrdersUnified(mo, time.Now())
 		if err != nil {
 			log.Printf("Deserialize error: %s\n", err)
 			continue
 		}
+		reader := bytes.NewReader(md)
+		resp, err := http.Post(, "application/json", reader)
+		if err != nil {
+			log.Printf("Error posting market data %s\n", err)
+			continue
+		}
+
+		_, _ = ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
 	}
+	log.Printf("DONE SCANNING %s", region)
 }
 
 func main() {
@@ -80,7 +105,10 @@ func main() {
 	var wg sync.WaitGroup
 	for _, region := range regions.AllRegions {
 		wg.Add(1)
-		go scanRegion(requestor, region, items)
+		go func(region *crestmarket.Region) {
+			defer wg.Done()
+			scanRegion(requestor, region, items)
+		}(region)
 	}
 	wg.Wait()
 

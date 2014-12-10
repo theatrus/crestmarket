@@ -28,8 +28,8 @@ func init() {
 
 type rowset struct {
 	GeneratedAt string        `json:"generatedAt"`
-	RegionId    int           `json:"regionId"`
-	TypeId      int           `json:"typeId"`
+	RegionId    int           `json:"regionID"`
+	TypeId      int           `json:"typeID"`
 	Rows        []interface{} `json:"rows"`
 }
 
