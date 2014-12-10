@@ -327,10 +327,10 @@ func (o *requestor) BuySellMarketOrders(region *Region, mtype *MarketType) (*Mar
 	go getAndSend(false)
 
 	r1 := <-mchan
+	r2 := <-mchan
 	if r1.err != nil {
 		return nil, r1.err
 	}
-	r2 := <-mchan
 	if r2.err != nil {
 		return nil, r2.err
 	}
