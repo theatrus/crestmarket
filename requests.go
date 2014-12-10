@@ -73,7 +73,7 @@ func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
 	if isSisi {
 		prefix = "https://api-sisi.testeveonline.com"
 	} else {
-		prefix = "https://crest-tq.eveonline.com/"
+		prefix = "https://crest-tq.eveonline.com"
 	}
 
 	req := requestor{transport, nil, prefix}

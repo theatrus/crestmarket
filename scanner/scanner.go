@@ -16,12 +16,28 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/crestmarket/helper"
 	"log"
+	"sync"
 	"time"
 )
+
+func scanRegion(req crestmarket.CRESTRequestor,
+	region *crestmarket.Region, forItems *crestmarket.MarketTypes) {
+	for _, item := range forItems.Types {
+		mo, err := req.BuySellMarketOrders(region, item)
+		if err != nil {
+			log.Println("fetch error: %s", err)
+			continue
+		}
+		_, err = crestmarket.SerializeOrdersUnified(mo, time.Now())
+		if err != nil {
+			log.Println("Deserialize error: %s", err)
+			continue
+		}
+	}
+}
 
 func main() {
 
@@ -37,6 +53,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	log.Println("Bootstrapping items and regions")
 	itemsChan := make(chan *crestmarket.MarketTypes)
 	go func(done chan<- *crestmarket.MarketTypes) {
 		items, err := requestor.Types()
@@ -58,20 +75,29 @@ func main() {
 	items := <-itemsChan
 	regions := <-regionsChan
 
-	theForge := regions.ByName("The Forge")
-	fmt.Println(theForge)
+	log.Println("Starting market scrape, parallelizing by region")
 
-	trit := items.ByName("Tritanium")
-	fmt.Println(trit)
-
-	mo, err := requestor.BuySellMarketOrders(theForge, trit)
-	if err != nil {
-		log.Fatal(err)
+	var wg sync.WaitGroup
+	for _, region := range regions.AllRegions {
+		wg.Add(1)
+		go scanRegion(requestor, region, items)
 	}
+	wg.Wait()
 
-	serial, err := crestmarket.SerializeOrdersUnified(mo, time.Now())
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%s\n", serial)
+	//theForge := regions.ByName("The Forge")
+	//fmt.Println(theForge)
+
+	//trit := items.ByName("Tritanium")
+	//fmt.Println(trit)
+
+	//mo, err := requestor.BuySellMarketOrders(theForge, trit)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+
+	//serial, err := crestmarket.SerializeOrdersUnified(mo, time.Now())
+	//if err != nil {
+	//	log.Fatal(Err)
+	//}
+	//fmt.Printf("%s\n", serial)
 }
