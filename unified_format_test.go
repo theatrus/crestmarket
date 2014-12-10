@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var expectedSerialized = []byte(`{"resultType":"orders","generator":{"name":"crestmarket","version":"2014-12-01"},"currentTime":"2009-11-10T23:00:00+00:00","columns":["price","volRemaining","range","orderID","volEntered","minVolume","bid","issueDate","duration","stationID"],"rowsets":[{"generatedAt":"2009-11-10T23:00:00+00:00","regionId":1000002,"typeId":34,"rows":[[3,3000,0,999999,3000,1,false,"2009-11-10T23:00:00+00:00",90,8888]]}]}`)
+var expectedSerialized = []byte(`{"resultType":"orders","generator":{"name":"crestmarket","version":"2014-12-01"},"currentTime":"2009-11-10T23:00:00+00:00","columns":["price","volRemaining","range","orderID","volEntered","minVolume","bid","issueDate","duration","stationID"],"rowsets":[{"generatedAt":"2009-11-10T23:00:00+00:00","regionID":1000002,"typeID":34,"rows":[[3,3000,0,999999,3000,1,false,"2009-11-10T23:00:00+00:00",90,8888]]}]}`)
 
 func TestSerializeUnified(t *testing.T) {
 	then := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
