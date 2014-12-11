@@ -118,7 +118,7 @@ func main() {
 	log.Println("Starting market scrape, parallelizing by region")
 
 	var wg sync.WaitGroup
-	for _, region := range regions.AllRegions {
+	for _, region := range filteredRegions {
 		wg.Add(1)
 		go func(region *crestmarket.Region) {
 			defer wg.Done()
