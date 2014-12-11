@@ -3,10 +3,9 @@ package helper
 import (
 	"fmt"
 	"github.com/theatrus/crestmarket"
-	"github.com/theatrus/mediate"
 	"github.com/theatrus/oauth2"
+	"net/http"
 	"log"
-	"time"
 )
 
 // Perform an *interactive* *console* handshake. This requires the user
@@ -48,7 +47,7 @@ func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenS
 // InteractiveStartup performs a console interactive handshake
 // or a simple refresh of tokens and stores
 // tokens gathered in a file called token.json
-func InteractiveStartup(settings *crestmarket.OAuthSettings) (crestmarket.CRESTRequestor, error) {
+func InteractiveStartup(settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
 	store := FileTokenStore{Filename: "token.json"}
 
 	base, err := crestmarket.NewOAuthOptions(settings)
@@ -63,10 +62,5 @@ func InteractiveStartup(settings *crestmarket.OAuthSettings) (crestmarket.CRESTR
 	}
 	// Need to manually flush the token store at auth for now
 	store.WriteToken(t.Token())
-	limitedT := mediate.RateLimit(20, 1*time.Second, t)
-	requestor, err := crestmarket.NewCrestRequestor(limitedT)
-	if err != nil {
-		return nil, err
-	}
-	return requestor, nil
+	return t, nil
 }

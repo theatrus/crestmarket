@@ -19,6 +19,7 @@ import (
 	"flag"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/crestmarket/helper"
+	"github.com/theatrus/mediate"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -75,7 +76,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	requestor, err := helper.InteractiveStartup(settings)
+	transport, err := helper.InteractiveStartup(settings)
+	if err != nil {
+		log.Fatal(err)
+	}
+	requestor, err := crestmarket.NewCrestRequestor(mediate.RateLimit(50, 1*time.Second, transport))
 	if err != nil {
 		log.Fatal(err)
 	}

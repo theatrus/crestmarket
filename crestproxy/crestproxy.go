@@ -18,7 +18,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	requestor, err := helper.InteractiveStartup(settings)
+	transport, err := helper.InteractiveStartup(settings)
+	if err != nil {
+		log.Fatal(err)
+	}
+	requestor, err := crestmarket.NewCrestRequestor(transport)
 	if err != nil {
 		log.Fatal(err)
 	}
