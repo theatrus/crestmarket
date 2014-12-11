@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/theatrus/oauth2"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -49,7 +48,7 @@ func init() {
 }
 
 type requestor struct {
-	transport *oauth2.Transport
+	transport http.RoundTripper
 	root      *Root
 	apiPrefix string
 }
@@ -68,7 +67,7 @@ type CRESTRequestor interface {
 	BuySellMarketOrders(region *Region, mtype *MarketType) (*MarketOrders, error)
 }
 
-func NewCrestRequestor(transport *oauth2.Transport) (CRESTRequestor, error) {
+func NewCrestRequestor(transport http.RoundTripper) (CRESTRequestor, error) {
 	var prefix string
 	if isSisi {
 		prefix = "https://api-sisi.testeveonline.com"
@@ -434,6 +433,6 @@ func (o *requestor) newCrestRequest(path string,
 	}
 
 	req.Header.Add("Accept", accept)
-	req.Header.Add("User-Agent", userAgent)
+	req.Header.Add("User-Agent", userAgent+" ("+userAgentSuffix+")")
 	return req, err
 }

@@ -27,9 +27,11 @@ import (
 	"time"
 )
 
-const (
-	uploadEndpoint = "http://localhost"
-)
+var uploadEndpoint string
+
+func init() {
+	flag.StringVar(&uploadEndpoint, "scanner.upload", "http://localhost", "Default upload endpoint")
+}
 
 func scanRegion(req crestmarket.CRESTRequestor,
 	region *crestmarket.Region, forItems *crestmarket.MarketTypes) {
@@ -99,6 +101,14 @@ func main() {
 
 	items := <-itemsChan
 	regions := <-regionsChan
+
+	// Remove regions which are not marketable (this is a zero-allocation filter due to slices)
+	filteredRegions := regions.AllRegions[:0]
+	for _, r := range regions.AllRegions {
+		if r.Id < 11000000 || r.Id == 11000031 {
+			filteredRegions = append(filteredRegions, r)
+		}
+	}
 
 	log.Println("Starting market scrape, parallelizing by region")
 
