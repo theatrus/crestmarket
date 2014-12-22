@@ -17,7 +17,7 @@ package crestmarket
 import (
 	"encoding/json"
 	"github.com/theatrus/mediate"
-	"github.com/theatrus/oauth2"
+	"github.com/theatrus/ooauth2"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,15 +40,15 @@ func LoadSettings(filename string) (*OAuthSettings, error) {
 	return &settings, nil
 }
 
-func NewOAuthOptions(settings *OAuthSettings) (*oauth2.Options, error) {
-	var endpoint oauth2.Option
+func NewOAuthOptions(settings *OAuthSettings) (*ooauth2.Options, error) {
+	var endpoint ooauth2.Option
 	if isSisi {
-		endpoint = oauth2.Endpoint(
+		endpoint = ooauth2.Endpoint(
 			"https://sisilogin.testeveonline.com/oauth/authorize",
 			"https://sisilogin.testeveonline.com/oauth/token",
 		)
 	} else {
-		endpoint = oauth2.Endpoint(
+		endpoint = ooauth2.Endpoint(
 			"https://login.eveonline.com/oauth/authorize",
 			"https://login.eveonline.com/oauth/token",
 		)
@@ -59,11 +59,11 @@ func NewOAuthOptions(settings *OAuthSettings) (*oauth2.Options, error) {
 		mediate.ReliableBody(http.DefaultTransport),
 	)
 
-	return oauth2.New(
-		oauth2.Client(settings.ClientId, settings.ClientSecret),
-		oauth2.RedirectURL(settings.Callback),
-		oauth2.Scope("publicData"),
-		oauth2.HTTPClient(httpClient),
+	return ooauth2.New(
+		ooauth2.Client(settings.ClientId, settings.ClientSecret),
+		ooauth2.RedirectURL(settings.Callback),
+		ooauth2.Scope("publicData"),
+		ooauth2.HTTPClient(httpClient),
 		endpoint,
 	)
 }

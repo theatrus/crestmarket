@@ -16,7 +16,7 @@ package helper
 
 import (
 	"encoding/json"
-	"github.com/theatrus/oauth2"
+	"github.com/theatrus/ooauth2"
 	"io/ioutil"
 	"log"
 )
@@ -25,19 +25,19 @@ type FileTokenStore struct {
 	Filename string
 }
 
-func FileToken(f *FileTokenStore) oauth2.Option {
-	return func(o *oauth2.Options) error {
+func FileToken(f *FileTokenStore) ooauth2.Option {
+	return func(o *ooauth2.Options) error {
 		o.TokenStore = f
 		return nil
 	}
 }
 
-func (o *FileTokenStore) ReadToken() (*oauth2.Token, error) {
+func (o *FileTokenStore) ReadToken() (*ooauth2.Token, error) {
 	fileContents, err := ioutil.ReadFile(o.Filename)
 	if err != nil {
 		return nil, err
 	}
-	var token oauth2.Token
+	var token ooauth2.Token
 	err = json.Unmarshal(fileContents, &token)
 	if err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func (o *FileTokenStore) ReadToken() (*oauth2.Token, error) {
 	return &token, nil
 }
 
-func (o *FileTokenStore) WriteToken(token *oauth2.Token) {
+func (o *FileTokenStore) WriteToken(token *ooauth2.Token) {
 	log.Println("writing token")
 	data, err := json.Marshal(token)
 	if err != nil {

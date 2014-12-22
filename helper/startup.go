@@ -3,7 +3,7 @@ package helper
 import (
 	"fmt"
 	"github.com/theatrus/crestmarket"
-	"github.com/theatrus/oauth2"
+	"github.com/theatrus/ooauth2"
 	"log"
 	"net/http"
 )
@@ -11,7 +11,7 @@ import (
 // Perform an *interactive* *console* handshake. This requires the user
 // opening a URL manually, and then pasting the resultant code back into
 // this application. The other approach is a multi-invocation token-fetcher.
-func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenStore) (*oauth2.Transport, error) {
+func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenStore) (*ooauth2.Transport, error) {
 	f, err := crestmarket.NewOAuthOptions(settings)
 	f.TokenStore = store
 	if err != nil {
