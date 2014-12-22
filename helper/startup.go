@@ -54,7 +54,8 @@ func BackgroundStartup(tokenFile string, settings *crestmarket.OAuthSettings) (h
 	if err != nil {
 		log.Fatal("Token refresh has failed")
 	}
-	if t.Token().Expired() {
+	_, err = t.CheckAndRefreshToken()
+	if err != nil || t.Token().Expired() {
 		log.Fatal("Token is expired and refresh has failed.")
 	}
 	store.WriteToken(t.Token())
@@ -78,6 +79,11 @@ func InteractiveStartup(tokenFile string, settings *crestmarket.OAuthSettings) (
 			return nil, err
 		}
 	}
+	_, err = t.CheckAndRefreshToken()
+	if err != nil || t.Token().Expired() {
+		log.Fatal("Token is expired and refresh has failed.")
+	}
+
 	// Need to manually flush the token store at auth for now
 	store.WriteToken(t.Token())
 	return t, nil
