@@ -24,14 +24,17 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
 
 var uploadEndpoint string
+var onlyRegion int
 
 func init() {
 	flag.StringVar(&uploadEndpoint, "scanner.upload", "http://localhost", "Default upload endpoint")
+	flag.IntVar(&onlyRegion, "scanner.region", 0, "Limit to a specific region")
 }
 
 func scanRegion(req crestmarket.CRESTRequestor,
@@ -44,6 +47,12 @@ func scanRegion(req crestmarket.CRESTRequestor,
 	}
 
 	for _, item := range dest {
+
+		if strings.Contains(item.Name, "Blueprint") {
+			log.Printf("Skipping Blueprint %s", item)
+			continue
+		}
+
 		mo, err := req.BuySellMarketOrders(region, item)
 		if err != nil {
 			log.Printf("fetch error: %s\n", err)
@@ -76,7 +85,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	transport, err := helper.InteractiveStartup(settings)
+	transport, err := helper.InteractiveStartup("token.json", settings)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -107,6 +116,10 @@ func main() {
 	items := <-itemsChan
 	regions := <-regionsChan
 
+	if onlyRegion != 0 {
+		log.Printf("Limiting scanning to region %d\n", onlyRegion)
+	}
+
 	// Remove regions which are not marketable (this is a zero-allocation filter due to slices)
 	filteredRegions := regions.AllRegions[:0]
 	for _, r := range regions.AllRegions {
@@ -115,32 +128,29 @@ func main() {
 		}
 	}
 
-	log.Println("Starting market scrape, parallelizing by region")
-
-	var wg sync.WaitGroup
-	for _, region := range filteredRegions {
-		wg.Add(1)
-		go func(region *crestmarket.Region) {
-			defer wg.Done()
-			scanRegion(requestor, region, items)
-		}(region)
+	for {
+		var wg sync.WaitGroup
+		if onlyRegion != 0 {
+			region := regions.ById(onlyRegion)
+			for i := 0; i < 40; i++ {
+				wg.Add(1)
+				go func(region *crestmarket.Region) {
+					defer wg.Done()
+					scanRegion(requestor, region, items)
+				}(region)
+			}
+		} else {
+			log.Println("Starting market scrape, parallelizing by region")
+			for _, region := range filteredRegions {
+				wg.Add(1)
+				go func(region *crestmarket.Region) {
+					defer wg.Done()
+					scanRegion(requestor, region, items)
+				}(region)
+			}
+		}
+		wg.Wait()
+		log.Println("Done.")
 	}
-	wg.Wait()
 
-	//theForge := regions.ByName("The Forge")
-	//fmt.Println(theForge)
-
-	//trit := items.ByName("Tritanium")
-	//fmt.Println(trit)
-
-	//mo, err := requestor.BuySellMarketOrders(theForge, trit)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-
-	//serial, err := crestmarket.SerializeOrdersUnified(mo, time.Now())
-	//if err != nil {
-	//	log.Fatal(Err)
-	//}
-	//fmt.Printf("%s\n", serial)
 }

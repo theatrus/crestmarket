@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	transport, err := helper.InteractiveStartup(settings)
+	transport, err := helper.InteractiveStartup("token.json", settings)
 	if err != nil {
 		log.Fatal(err)
 	}

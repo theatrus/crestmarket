@@ -32,6 +32,16 @@ func (r *Regions) ByName(name string) *Region {
 	return nil
 }
 
+// TODO: Build a map indexed by something useful
+func (r *Regions) ById(id int) *Region {
+	for _, region := range r.AllRegions {
+		if region.Id == id {
+			return region
+		}
+	}
+	return nil
+}
+
 // An inventory type
 type MarketType struct {
 	Name string
@@ -48,6 +58,15 @@ type MarketTypes struct {
 func (r *MarketTypes) ByName(name string) *MarketType {
 	for _, mtype := range r.Types {
 		if mtype.Name == name {
+			return mtype
+		}
+	}
+	return nil
+}
+
+func (r *MarketTypes) ById(id int) *MarketType {
+	for _, mtype := range r.Types {
+		if mtype.Id == id {
 			return mtype
 		}
 	}

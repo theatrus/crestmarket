@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/theatrus/crestmarket"
 	"github.com/theatrus/oauth2"
-	"net/http"
 	"log"
+	"net/http"
 )
 
 // Perform an *interactive* *console* handshake. This requires the user
@@ -44,11 +44,29 @@ func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenS
 	return t, nil
 }
 
+// BackgroundStartup tries to start with the current token
+// or fails with a Fatal if the token can't be read or is expired.
+func BackgroundStartup(tokenFile string, settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
+	store := FileTokenStore{Filename: tokenFile}
+
+	base, err := crestmarket.NewOAuthOptions(settings)
+	t, err := base.NewTransportFromTokenStore(&store)
+	if err != nil {
+		log.Fatal("Token refresh has failed")
+	}
+	if t.Token().Expired() {
+		log.Fatal("Token is expired and refresh has failed.")
+	}
+	store.WriteToken(t.Token())
+	return t, nil
+
+}
+
 // InteractiveStartup performs a console interactive handshake
 // or a simple refresh of tokens and stores
 // tokens gathered in a file called token.json
-func InteractiveStartup(settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
-	store := FileTokenStore{Filename: "token.json"}
+func InteractiveStartup(tokenFile string, settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
+	store := FileTokenStore{Filename: tokenFile}
 
 	base, err := crestmarket.NewOAuthOptions(settings)
 	t, err := base.NewTransportFromTokenStore(&store)
