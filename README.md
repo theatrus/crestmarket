@@ -23,7 +23,7 @@ format JSON for all market orders fetched.
 
 ## Getting started
 
-Make sure you have Go 1.3+ installed. Make sure you have defined a
+Make sure you have Go 1.4 installed. Make sure you have defined a
 $GOPATH.
 
 These commands can be run anywhere, though explicit paths are
