@@ -109,7 +109,7 @@ type Station struct {
 }
 
 type MarketOrder struct {
-	Buy       bool
+	Bid       bool
 	Duration  int
 	Href      string
 	Id        int
