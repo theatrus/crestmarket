@@ -122,16 +122,23 @@ type MarketOrder struct {
 	Volume    int
 }
 
+
+const (
+	RangeSolarsystem = 0
+	RangeRegion = 65535
+	RangeStation = -1
+)
+
 // Numericrange returns the classical numeric range key
 // based on the string input/
 func (order *MarketOrder) NumericRange() int {
 	orderRange := 0
 	if order.Range == "solarsystem" {
-		orderRange = 0
+		orderRange = RangeSolarsystem
 	} else if order.Range == "region" {
-		orderRange = 65535
+		orderRange = RangeRegion
 	} else if order.Range == "station" {
-		orderRange = -1
+		orderRange = RangeStation
 	} else {
 		or, _ := strconv.ParseInt(order.Range, 10, 64)
 		orderRange = int(or)
