@@ -20,7 +20,7 @@ func TestSerializeUnified(t *testing.T) {
 	orders.Type = mtype
 	orders.Region = mregion
 
-	order := MarketOrder{Buy: false, Duration: 90, Href: "", Id: 999999, Issued: then, Station: Station{"hmm", "hmm", 8888},
+	order := MarketOrder{Bid: false, Duration: 90, Href: "", Id: 999999, Issued: then, Station: Station{"hmm", "hmm", 8888},
 		MinVolume: 1, Price: 3.0, Range: "solarsystem", Type: *mtype, Volume: 3000}
 	orders.Orders = append(orders.Orders, &order)
 
