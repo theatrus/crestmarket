@@ -46,7 +46,6 @@ func (o *FileTokenStore) ReadToken() (*ooauth2.Token, error) {
 }
 
 func (o *FileTokenStore) WriteToken(token *ooauth2.Token) {
-	log.Println("writing token")
 	data, err := json.Marshal(token)
 	if err != nil {
 		log.Fatal(err)

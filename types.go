@@ -2,6 +2,7 @@ package crestmarket
 
 import (
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -15,31 +16,42 @@ type Region struct {
 // A set of Regions, with pre-filtered views
 type Regions struct {
 	AllRegions []*Region
+	byId       map[int]*Region
+	byName     map[string]*Region
+	m          sync.Mutex
 }
 
 // Build a new Regions structure
 func newRegions() *Regions {
-	return &Regions{make([]*Region, 0)}
+	return &Regions{AllRegions: make([]*Region, 0)}
 }
 
-// TODO: Build a map indexed by something useful
 func (r *Regions) ByName(name string) *Region {
-	for _, region := range r.AllRegions {
-		if region.Name == name {
-			return region
+	if r.byName == nil {
+		r.m.Lock()
+		defer r.m.Unlock()
+
+		r.byName = make(map[string]*Region)
+
+		for _, region := range r.AllRegions {
+			r.byName[region.Name] = region
 		}
 	}
-	return nil
+
+	return r.byName[name]
 }
 
-// TODO: Build a map indexed by something useful
 func (r *Regions) ById(id int) *Region {
-	for _, region := range r.AllRegions {
-		if region.Id == id {
-			return region
+	if r.byId == nil {
+		r.m.Lock()
+		defer r.m.Unlock()
+
+		r.byId = make(map[int]*Region)
+		for _, region := range r.AllRegions {
+			r.byId[region.Id] = region
 		}
 	}
-	return nil
+	return r.byId[id]
 }
 
 // An inventory type
@@ -51,31 +63,42 @@ type MarketType struct {
 
 // A collection of inventory types
 type MarketTypes struct {
-	Types []*MarketType
+	Types  []*MarketType
+	byName map[string]*MarketType
+	byId   map[int]*MarketType
+	m      sync.Mutex
 }
 
-// TODO: Build a map indexed by something useful
 func (r *MarketTypes) ByName(name string) *MarketType {
-	for _, mtype := range r.Types {
-		if mtype.Name == name {
-			return mtype
+	if r.byName == nil {
+		r.m.Lock()
+		defer r.m.Unlock()
+
+		r.byName = make(map[string]*MarketType)
+		for _, mtype := range r.Types {
+			r.byName[mtype.Name] = mtype
 		}
 	}
-	return nil
+	return r.byName[name]
 }
 
 func (r *MarketTypes) ById(id int) *MarketType {
-	for _, mtype := range r.Types {
-		if mtype.Id == id {
-			return mtype
+	if r.byId == nil {
+		r.m.Lock()
+		defer r.m.Unlock()
+
+		r.byId = make(map[int]*MarketType)
+
+		for _, mtype := range r.Types {
+			r.byId[mtype.Id] = mtype
 		}
 	}
-	return nil
+	return r.byId[id]
 }
 
 // Build a new MarketTypes structure
 func newMarketTypes() *MarketTypes {
-	return &MarketTypes{make([]*MarketType, 0)}
+	return &MarketTypes{Types: make([]*MarketType, 0)}
 }
 
 // A station
