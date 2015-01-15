@@ -63,10 +63,15 @@ func SerializeOrdersUnified(orders *MarketOrders, at time.Time) ([]byte, error) 
 	for i, order := range orders.Orders {
 
 		row := []interface{}{order.Price,
-			order.Volume, order.NumericRange(),
-			order.Id, order.Volume, order.MinVolume,
-			order.Bid, order.Issued.Format(dateFormat),
-			order.Duration, order.Station.Id,
+			order.Volume,
+			order.NumericRange(),
+			order.Id,
+			order.VolumeEntered,
+			order.MinVolume,
+			order.Bid,
+			order.Issued.Format(dateFormat),
+			order.Duration,
+			order.Station.Id,
 		}
 		rowset.Rows[i] = &row
 	}

@@ -109,24 +109,24 @@ type Station struct {
 }
 
 type MarketOrder struct {
-	Bid       bool
-	Duration  int
-	Href      string
-	Id        int
-	Issued    time.Time
-	Station   Station
-	MinVolume int
-	Price     float64
-	Range     string
-	Type      MarketType
-	Volume    int
+	Bid           bool
+	Duration      int
+	Href          string
+	Id            int
+	Issued        time.Time
+	Station       Station
+	MinVolume     int
+	VolumeEntered int
+	Price         float64
+	Range         string
+	Type          MarketType
+	Volume        int
 }
-
 
 const (
 	RangeSolarsystem = 0
-	RangeRegion = 65535
-	RangeStation = -1
+	RangeRegion      = 65535
+	RangeStation     = -1
 )
 
 // Numericrange returns the classical numeric range key

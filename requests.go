@@ -182,26 +182,38 @@ func unpackMarketOrders(mo *MarketOrders, mt *MarketType, page *page) error {
 		buy := itemMap["buy"].(bool)
 		duration := int(itemMap["duration"].(float64))
 		href := itemMap["href"].(string)
-		id := idFromUrl(href)
 		issued, err := time.Parse(rfc3339SansTz, itemMap["issued"].(string))
 		if err != nil {
 			return err
 		}
+
 		minVolume := int(itemMap["minVolume"].(float64))
+		volEnter := int(itemMap["volumeEntered"].(float64))
+		orderId := int(itemMap["id"].(float64))
 		price := itemMap["price"].(float64)
 		mrange := itemMap["range"].(string)
 		volume := int(itemMap["volume"].(float64))
 
 		locationMap := itemMap["location"].(map[string]interface{})
+		locationId := int(locationMap["id"].(float64))
 		locationHref := locationMap["href"].(string)
-		locationId := idFromUrl(locationHref)
-		location := Station{locationMap["name"].(string), locationHref, locationId}
+		location := Station{locationMap["name"].(string),
+			locationHref,
+			locationId}
 
 		mo.Orders = append(mo.Orders,
-			&MarketOrder{buy, duration,
-				href, int(id), issued, location,
-				minVolume, price, mrange,
-				*mt, volume})
+			&MarketOrder{buy,
+				duration,
+				href,
+				orderId,
+				issued,
+				location,
+				minVolume,
+				volEnter,
+				price,
+				mrange,
+				*mt,
+				volume})
 	}
 	return nil
 }
