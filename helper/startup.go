@@ -53,7 +53,7 @@ func InteractiveStartup(tokenFile string, settings *crestmarket.OAuthSettings) (
 	// Try the new FileTokenSource, if it doesn't produce a valid token, force
 	// the user into the interactive prompt.
 	if token, err := source.Token(); err != nil || token.AccessToken == "" {
-		log.Println("Token is not valid, requesting new authorization interactively: ", err, storedToken)
+		log.Println("Token is not valid, requesting new authorization interactively")
 		source.CachedToken, err = InteractiveHandshake(config)
 		if err != nil {
 			log.Println("Can't really continue, auth has failed.")
