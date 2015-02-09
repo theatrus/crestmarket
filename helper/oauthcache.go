@@ -16,37 +16,46 @@ package helper
 
 import (
 	"encoding/json"
-	"github.com/theatrus/ooauth2"
+	"golang.org/x/oauth2"
 	"io/ioutil"
 	"log"
 )
 
-type FileTokenStore struct {
-	Filename string
+func NewFileTokenSource(filename string) *FileTokenSource {
+	return &FileTokenSource{filename, new(oauth2.Token)}
 }
 
-func FileToken(f *FileTokenStore) ooauth2.Option {
-	return func(o *ooauth2.Options) error {
-		o.TokenStore = f
-		return nil
+type FileTokenSource struct {
+	Filename    string
+	CachedToken *oauth2.Token
+}
+
+// Implementing oauth2.TokenSource interface:
+func (o FileTokenSource) Token() (*oauth2.Token, error) {
+	// Checking the AccessToken below is a hack. Ideally we would
+	// check o.CachedToken.Valid(). Unfortunately, Valid() checks
+	// the expiration time stamp, and returns false if expired.
+	// This would cause this function to always read and parse
+	// the file on every call because we never write back to the
+	// file after OAuth2 refreshes the token.
+	// TODO: switch to Valid() once we properly write to the file
+	// on token refreshes.
+	if o.CachedToken.AccessToken != "" {
+		return o.CachedToken, nil
 	}
-}
-
-func (o *FileTokenStore) ReadToken() (*ooauth2.Token, error) {
 	fileContents, err := ioutil.ReadFile(o.Filename)
 	if err != nil {
 		return nil, err
 	}
-	var token ooauth2.Token
-	err = json.Unmarshal(fileContents, &token)
+	err = json.Unmarshal(fileContents, o.CachedToken)
 	if err != nil {
 		return nil, err
 	}
-	return &token, nil
+	return o.CachedToken, nil
 }
 
-func (o *FileTokenStore) WriteToken(token *ooauth2.Token) {
-	data, err := json.Marshal(token)
+func (o *FileTokenSource) WriteTokenToFile() {
+	data, err := json.Marshal(o.CachedToken)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -54,6 +63,5 @@ func (o *FileTokenStore) WriteToken(token *ooauth2.Token) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	return
 }

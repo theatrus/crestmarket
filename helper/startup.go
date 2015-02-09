@@ -3,7 +3,7 @@ package helper
 import (
 	"fmt"
 	"github.com/theatrus/crestmarket"
-	"github.com/theatrus/ooauth2"
+	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 )
@@ -11,17 +11,10 @@ import (
 // Perform an *interactive* *console* handshake. This requires the user
 // opening a URL manually, and then pasting the resultant code back into
 // this application. The other approach is a multi-invocation token-fetcher.
-func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenStore) (*ooauth2.Transport, error) {
-	f, err := crestmarket.NewOAuthOptions(settings)
-	f.TokenStore = store
-	if err != nil {
-		log.Fatal(err)
-		return nil, err
-	}
-
+func InteractiveHandshake(config *oauth2.Config) (*oauth2.Token, error) {
 	// Redirect user to consent page to ask for permission
 	// for the scopes specified above.
-	url := f.AuthCodeURL("state", "online", "auto")
+	url := config.AuthCodeURL("state", oauth2.AccessTypeOnline)
 	fmt.Println("Visit the URL for the auth dialog:")
 	fmt.Println(url)
 	fmt.Println()
@@ -32,59 +25,54 @@ func InteractiveHandshake(settings *crestmarket.OAuthSettings, store *FileTokenS
 	// an access token and initiate a Transport that is
 	// authorized and authenticated by the retrieved token.
 	var code string
-	if _, err = fmt.Scan(&code); err != nil {
+	if _, err := fmt.Scan(&code); err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
-	t, err := f.NewTransportFromCode(code)
+
+	// TODO: Explore how to get Mediate's retrying transport layer adapted
+	// into the Context-to-http.Client lookup table before making the
+	// exchange.
+	// Would be nice if oauth2 exported registerContextClientFunc() ...bummer
+	freshToken, err := config.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
 	}
-	return t, nil
-}
 
-// BackgroundStartup tries to start with the current token
-// or fails with a Fatal if the token can't be read or is expired.
-func BackgroundStartup(tokenFile string, settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
-	store := FileTokenStore{Filename: tokenFile}
-
-	base, err := crestmarket.NewOAuthOptions(settings)
-	t, err := base.NewTransportFromTokenStore(&store)
-	if err != nil {
-		log.Fatal("Token refresh has failed")
-	}
-	_, err = t.CheckAndRefreshToken()
-	if err != nil || t.Token().Expired() {
-		log.Fatal("Token is expired and refresh has failed.")
-	}
-	store.WriteToken(t.Token())
-	return t, nil
-
+	return freshToken, nil
 }
 
 // InteractiveStartup performs a console interactive handshake
 // or a simple refresh of tokens and stores
 // tokens gathered in a file called token.json
 func InteractiveStartup(tokenFile string, settings *crestmarket.OAuthSettings) (http.RoundTripper, error) {
-	store := FileTokenStore{Filename: tokenFile}
+	config := crestmarket.NewOAuthConfig(settings)
+	source := NewFileTokenSource(tokenFile)
 
-	base, err := crestmarket.NewOAuthOptions(settings)
-	t, err := base.NewTransportFromTokenStore(&store)
-	if err != nil {
-		log.Println("Token refresh has failed, requesting new authorization interactively")
-		t, err = InteractiveHandshake(settings, &store)
+	// Try the new FileTokenSource, if it doesn't produce a valid token, force
+	// the user into the interactive prompt.
+	if token, err := source.Token(); err != nil || token.AccessToken == "" {
+		log.Println("Token is not valid, requesting new authorization interactively")
+		source.CachedToken, err = InteractiveHandshake(config)
 		if err != nil {
 			log.Println("Can't really continue, auth has failed.")
 			return nil, err
 		}
-	}
-	_, err = t.CheckAndRefreshToken()
-	if err != nil || t.Token().Expired() {
-		log.Fatal("Token is expired and refresh has failed.")
+		// TODO: Update the token whenever it gets refreshed by OAuth2.
+		// Context: We only write to the file if the user goes through
+		// interactive handshake. If the token file contains a valid but
+		// expired token, OAuth2 will (internally) go refresh the token on
+		// its first RoundTrip() with the server. We never end up writing
+		// the refreshed token back to the file.
+		// Perhaps put this functionality into a time.NewTicker?
+		source.WriteTokenToFile()
 	}
 
-	// Need to manually flush the token store at auth for now
-	store.WriteToken(t.Token())
-	return t, nil
+	transport := &oauth2.Transport{
+		// Use Config.TokenSource to make use of oauth2.tokenRefresher{...}
+		Source: config.TokenSource(oauth2.NoContext, source.CachedToken),
+	}
+
+	return transport, nil
 }
