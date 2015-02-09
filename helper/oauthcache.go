@@ -32,7 +32,15 @@ type FileTokenSource struct {
 
 // Implementing oauth2.TokenSource interface:
 func (o FileTokenSource) Token() (*oauth2.Token, error) {
-	if o.CachedToken.Valid() {
+	// Checking the AccessToken below is a hack. Ideally we would
+	// check o.CachedToken.Valid(). Unfortunately, Valid() checks
+	// the expiration time stamp, and returns false if expired.
+	// This would cause this function to always read and parse
+	// the file on every call because we never write back to the
+	// file after OAuth2 refreshes the token.
+	// TODO: switch to Valid() once we properly write to the file
+	// on token refreshes.
+	if o.CachedToken.AccessToken != "" {
 		return o.CachedToken, nil
 	}
 	fileContents, err := ioutil.ReadFile(o.Filename)

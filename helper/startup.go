@@ -70,7 +70,8 @@ func InteractiveStartup(tokenFile string, settings *crestmarket.OAuthSettings) (
 	}
 
 	transport := &oauth2.Transport{
-		Source: oauth2.ReuseTokenSource(nil, source),
+		// Use Config.TokenSource to make use of oauth2.tokenRefresher{...}
+		Source: config.TokenSource(oauth2.NoContext, source.CachedToken),
 	}
 
 	return transport, nil
